@@ -1,0 +1,830 @@
+{ "openapi":"3.0.0",
+  "info":{
+    "title":"Simul Collaborative Design Platform Database",
+    "description":"This page displays some of the key routes of the API, and shows what is returned",
+    "version":"1.0.0"
+  },
+  "basePath":"/api",
+  "tags":[
+    {
+      "name":"Authentication",
+      "description":"Used for all user types to log into frontend and access resources"
+    },
+    {
+      "name":"User Authentication",
+      "description":"Getting authenticated to access project resources"
+    },
+    {
+      "name":"Director Authentication",
+      "description":"Getting authenticated to access project resources from all users."
+    },
+    {
+      "name":"Projects",
+      "description":"Once authenticated, you can reach these endpoints from within the app"
+    },
+    {
+      "name":"Project Stages",
+      "description":"Once authenticated, you can add stages and stage comments"
+    }
+  ],
+  "paths":{
+    "/register":{
+      "post":{
+        "tags":["User Authentication"],
+        "description":"This is where users can create an account.",
+        "operationId":"register",
+        "produces":["application/json"],
+        "requestBody":{
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name":{
+                    "type": "string",
+                    "example": "Steve Stephenson",
+                    "description":"Name",
+                    "required":true
+                  },
+                  "phone":{
+                    "type": "string",
+                    "example": "04111111111",
+                    "description":"Phone",
+                    "required":true
+                  },
+                  "email":{
+                    "type": "string",
+                    "example": "demo-user@gmail.com",
+                    "description":"Email",
+                    "required":true
+                  },
+                  "password":{
+                    "type": "string",
+                    "example": "demouserpassword",
+                    "description":"Password for authentication",
+                    "required":true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses":{
+          "200": {
+              "description": "Created",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "string",
+                        "example": "success"
+                      },
+                      "token": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiZGVtby11c2VyQGdtYWlsLmNvbWZnQkJiU0lSa3Y3eSs2dndUeWhPdDA5c294UEpZYy9sNG1LR1d3RlY2WGc9IiwiaWF0IjoxNTg0NDEyMTMyLCJleHAiOjE1ODQ0OTg1MzJ9.x-718Nsldfs6BAJP5sNng_uiMuX3g9T8bYQYxgSHdW0"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "Error. Name is required"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+    },
+    "/login":{
+      "post":{
+        "tags":["User Authentication"],
+        "summary":"Login with an existing user account",
+        "description":"Log into database for authentication",
+        "operationId":"login",
+        "produces":["application/json"],
+        "requestBody":{
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email":{
+                    "type": "string",
+                    "example": "demo-user@gmail.com",
+                    "description":"Email",
+                    "required":true
+                  },
+                  "password":{
+                    "type": "string",
+                    "example": "demouserpassword",
+                    "description":"Password for authentication",
+                    "required":true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses":{
+          "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "access_token": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7ImlkIjo1Nzg2LCJlbWFpbCI6ImRlbW8xMjM0QGdtYWlsLmNvbSJ9LCJpYXQiOjE1NTUzMjQ2MDIsImV4cCI6MTU1NTQxMTAwMn0.mo85iKuAQ_h8n8-6pkeNNs5CCnV0G8hScxhi_ml_Q6c"
+                      },
+                      "token_type": {
+                        "type": "string",
+                        "example": "Bearer"
+                      },
+                      "expires_in": {
+                        "type": "intager",
+                        "example": 86400
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "Invalid Login: Incorrect Email or Password."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+    },
+    "/directorregister":{
+      "post":{
+        "tags":["Director Authentication"],
+        "description":"This is where directors can create an account.",
+        "operationId":"directorregister",
+        "produces":["application/json"],
+        "requestBody":{
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name":{
+                    "type": "string",
+                    "example": "Steve Stephenson",
+                    "description":"Name",
+                    "required":true
+                  },
+                  "phone":{
+                    "type": "string",
+                    "example": "04111111111",
+                    "description":"Phone",
+                    "required":true
+                  },
+                  "email":{
+                    "type": "string",
+                    "example": "stevedirector@gmail.com",
+                    "description":"Email",
+                    "required":true
+                  },
+                  "password":{
+                    "type": "string",
+                    "example": "demouserpassword",
+                    "description":"Password for authentication",
+                    "required":true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses":{
+          "200": {
+              "description": "Created",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "string",
+                        "example": "success"
+                      },
+                      "token": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiZGVtby11c2VyQGdtYWlsLmNvbWZnQkJiU0lSa3Y3eSs2dndUeWhPdDA5c294UEpZYy9sNG1LR1d3RlY2WGc9IiwiaWF0IjoxNTg0NDEyMTMyLCJleHAiOjE1ODQ0OTg1MzJ9.x-718Nsldfs6BAJP5sNng_uiMuX3g9T8bYQYxgSHdW0"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "Error. Bruh"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+    },
+    "/directorlogin":{
+      "post":{
+        "tags":["Director Authentication"],
+        "summary":"Login with an existing director account",
+        "description":"Log into database for authentication",
+        "operationId":"login",
+        "produces":["application/json"],
+        "requestBody":{
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email":{
+                    "type": "string",
+                    "example": "stevedirector@mail.com",
+                    "description":"Email",
+                    "required":true
+                  },
+                  "password":{
+                    "type": "string",
+                    "example": "demouserpassword",
+                    "description":"Password for authentication",
+                    "required":true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses":{
+          "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "access_token": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7ImlkIjo1Nzg2LCJlbWFpbCI6ImRlbW8xMjM0QGdtYWlsLmNvbSJ9LCJpYXQiOjE1NTUzMjQ2MDIsImV4cCI6MTU1NTQxMTAwMn0.mo85iKuAQ_h8n8-6pkeNNs5CCnV0G8hScxhi_ml_Q6c"
+                      },
+                      "token_type": {
+                        "type": "string",
+                        "example": "Bearer"
+                      },
+                      "expires_in": {
+                        "type": "intager",
+                        "example": 86400
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "Invalid Login: Incorrect Email or Password."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+    },
+
+    "/createproject":{
+      "post":{
+        "tags":["Projects"],
+        "description":"Creating a project with client credentials",
+        "operationId":"createProject",
+        "produces":["application/json"],
+        "requestBody":{
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name":{
+                    "type": "string",
+                    "example": "Ben Smith",
+                    "description":"Client Name",
+                    "required":true
+                  },
+                  "phone":{
+                    "type": "string",
+                    "example": "04001 234 567",
+                    "description":"Client Phone",
+                    "required":true
+                  },
+                  "email":{
+                    "type": "string",
+                    "example": "bensmith@gmail.com",
+                    "description":"Client Email",
+                    "required":true
+                  },
+                  "projectAddress":{
+                    "type": "string",
+                    "example": "6 ProjectCreated Avenue",
+                    "description":"Address of Project",
+                    "required":true
+                  },
+                  "projectedCompletionDate": {
+                    "type": "string",
+                    "example": "2020/04/12",
+                    "description":"Projected Completion Date for Project",
+                    "required":true
+                  },
+                  "userID": {
+                    "type": "number",
+                    "example": 1,
+                    "description":"The ID of the user logged in",
+                    "required":true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses":{
+          "200": {
+              "description": "Created",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "You have successfully created a project."
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "oops! It looks like the project can't be created :("
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+    },
+    "/users/me":{
+      "get":{
+        "tags":["Authentication"],
+        "description":"Get user data",
+        "operationId":"getUser",
+        "produces":["application/json"],
+        "parameters":[
+          {
+              "name":"token",
+              "in":"query",
+              "description":"Name of the Offence to search for",
+              "required":true,
+              "schema":{
+                  "type":"string",
+                  "example":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWxodHQwKzNqeTQ3THFzdldqZUJBelhqckx0V0lrVERNNjB4SkpvNmsxUVk9IiwidG9rZW4iOjMyLCJpYXQiOjE1ODM5NzI3MjAsImV4cCI6MTU4NDA1OTEyMH0.cJfCG7JjppUqoFbY8B94f7MrlN-sE3CPQ_bJ-aNCSOw",
+                  "description": "JWT token after login"
+              }
+          }],
+        "responses":{
+          "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "user": {
+                        "type": "object",
+                        "properties": {
+                            "userID": {
+                              "type": "int",
+                              "example": "32"
+                            },
+                            "userName": {
+                              "type": "string",
+                              "example": "Steve"
+                            },
+                            "userPhone": {
+                              "type": "string",
+                              "example": "0412444000"
+                            },
+                            "userEmail": {
+                              "type": "string",
+                              "example": "steve@gmail.com"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+            },
+            "400": {
+              "description": "Bad Request",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "oops! it looks like you're missing the offence query parm"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "oh no! it looks like your authorization token is invalid..."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+    "/getprojectdetails":{
+        "get":{
+          "tags":["Projects"],
+          "description":"Uses the search location in the window as a parameter to extract the details of the project",
+          "operationId":"listProjects",
+          "produces":["application/json"],
+          "responses":{
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "userID":{
+                        "type": "number",
+                        "example": 1,
+                        "description":"User ID"
+                      },
+                      "userName":{
+                        "type": "string",
+                        "example": "Ben Smith",
+                        "description":"Client Name"
+                      },
+                      "userPhone":{
+                        "type": "string",
+                        "example": "04001 234 567",
+                        "description":"Client Phone"
+                      },
+                      "userEmail":{
+                        "type": "string",
+                        "example": "bensmith@gmail.com",
+                        "description":"Client Email"
+                      },
+                      "projectID":{
+                        "type": "number",
+                        "example": 1,
+                        "description":"Project ID"
+                      },
+                      "projectAddress":{
+                        "type": "string",
+                        "example": "6 ProjectCreated Avenue",
+                        "description":"Address of Project"
+                      },
+                      "dateCreated": {
+                        "type": "string",
+                        "example": "2020/04/12",
+                        "description":"The date the project was created"
+                      },
+                      "projectStatus": {
+                        "type": "string",
+                        "example": "In Progress",
+                        "description":"The status of the project"
+                      },
+                      "projectOwner": {
+                        "type": "number",
+                        "example": 1,
+                        "description":"The ID of the owner of the project"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/getstages":{
+        "get":{
+          "tags":["Project Stages"],
+          "description":"Uses the search location in the window as a parameter to extract the stages of the project",
+          "operationId":"getStages",
+          "produces":["application/json"],
+          "responses":{
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "projectID":{
+                        "type": "number",
+                        "example": 1,
+                        "description":"Project ID"
+                      },
+                      "projectAddress":{
+                        "type": "string",
+                        "example": "6 ProjectCreated Avenue",
+                        "description":"Address of Project"
+                      },
+                      "stageName":{
+                        "type": "string",
+                        "example": "Phase 1: Pre-Design",
+                        "description":"Stage in Project"
+                      },
+                      "dateCreated": {
+                        "type": "string",
+                        "example": "2020/04/12",
+                        "description":"The date the project was created"
+                      },
+                      "stageDateCommenced": {
+                        "type": "string",
+                        "example": "2020/04/18",
+                        "description":"The date the stage commences"
+                      },
+                      "stageDateCompleted": {
+                        "type": "string",
+                        "example": "",
+                        "description":"The date the stage was completed"
+                      },
+                      "stageProjectedCompletionDate": {
+                        "type": "string",
+                        "example": "2020/04/30",
+                        "description":"The projected date the stage will be completed"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/getstagecomments":{
+        "get":{
+          "tags":["Project Stages"],
+          "description":"Uses the search location in the window as a parameter to extract the comments from each stage in the project",
+          "operationId":"getStages",
+          "produces":["application/json"],
+          "responses":{
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "stageName":{
+                        "type": "string",
+                        "example": "Phase 1: Pre-Design",
+                        "description":"Stage in Project"
+                      },
+                      "stageComment":{
+                        "type": "string",
+                        "example": "I really love this design, but can we make the opening a bit more grand",
+                        "description":"Stage Comment"
+                      },
+                      "userName": {
+                        "type": "string",
+                        "example": "2020/04/12",
+                        "description":"The user created the comment"
+                      },
+                      "dateCreated": {
+                        "type": "string",
+                        "example": "2020/04/12",
+                        "description":"The date the project was created"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/addsinglestage": {
+        "post":{
+          "tags":["Project Stages"],
+          "description":"This is where users can add more stages to the project",
+          "operationId":"addstage",
+          "produces":["application/json"],
+          "requestBody":{
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stageName":{
+                      "type": "string",
+                      "example": "Final Stage: Demo",
+                      "description":"Name of Stage",
+                      "required":true
+                    },
+                    "projectID":{
+                      "type": "number",
+                      "example": 1,
+                      "description":"The ID of the project",
+                      "required":true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses":{
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "stageName":{
+                        "type": "string",
+                        "example": "Stage has been added successfully",
+                        "description":"Added Stage"
+                      }
+                      }
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "Bad Request",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "Error. Name is required"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+      },
+      "/submitcomment": {
+        "post":{
+          "tags":["Project Stages"],
+          "description":"This is where users can submit comments depending on the stage selected on the web page",
+          "operationId":"submitstage",
+          "produces":["application/json"],
+          "requestBody":{
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stageName":{
+                      "type": "string",
+                      "example": "Stage 1: Pre-Design",
+                      "description":"Name of Stage",
+                      "required":true
+                    },
+                    "projectID":{
+                      "type": "number",
+                      "example": 1,
+                      "description":"The ID of the project",
+                      "required":true
+                    },
+                    "comment":{
+                      "type": "string",
+                      "example": "Really loving the layout of the kitchen!",
+                      "description":"stage comment",
+                      "required":true
+                    }                    
+                  }
+                }
+              }
+            }
+          },
+          "responses":{
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "created":{
+                        "type": "string",
+                        "example": "16/05/2020 09:13AM",
+                        "description":"Date and Time the comment was added"
+                      }
+                      }
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "Bad Request",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "Error. Name is required"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+      }
+    }
+  }
