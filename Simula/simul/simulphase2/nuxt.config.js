@@ -37,8 +37,8 @@ module.exports = {
     'bootstrap-vue/nuxt',
   ],
   axios: {
-    // baseURL: 'http://localhost:8080',
-    baseURL: 'http://ec2-54-66-239-61.ap-southeast-2.compute.amazonaws.com:3000/'
+    baseURL: 'http://localhost:8080',
+    //baseURL: 'http://ec2-54-66-239-61.ap-southeast-2.compute.amazonaws.com:3000/'
   },
   plugins: [{ src: '@/plugins/button-group' }, '~/plugins/tel-input'],
   auth: {
