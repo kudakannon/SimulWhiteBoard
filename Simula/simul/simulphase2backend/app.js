@@ -34,8 +34,11 @@ var shareProjectRouter = require('./routes/shareProject')
 var directorResetPasswordRouter = require('./routes/directorResetPassword');
 var directorForgotPasswordRouter = require('./routes/directorForgotPassword');
 
+
 var app = express();
 
+var sockio = require('socket.io')(10011, {cors: { origin: '*',}});
+var socket = require('./routes/socket.js')(sockio);
 
 
 const options = require('./knexfile.js');
@@ -100,6 +103,7 @@ app.use('/directorregister', directorRegisterRouter)
 app.use('/shareproject', shareProjectRouter)
 app.use('/directorresetpassword', directorResetPasswordRouter)
 app.use('/directorforgotpassword', directorForgotPasswordRouter)
+app.use('/socket', socket);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
