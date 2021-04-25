@@ -2,53 +2,29 @@ const router = require("./login");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
-
-let connections = new Map();
 const whiteboards = [];
-
-class Connection {
-    remove() {
-        connections.delete(this.sessionCode);
-    };
-
-    constructor(userID, projectID) {
-        this.user = userID;
-        this.room = projectID.toString();
-        this.active = false;
-
-        this.sessionCode = crypto.createHash('sha256')
-            .update(this.user.toString() + this.room + (Math.random() * 1000000).toString()).digest('base64');
-
-        this.timeout = setTimeout(this.remove, 1000 * 60 * 5);
-        connections.set(this.sessionCode, this);
-    };
-
-    getSessionCode() {
-        return this.sessionCode
-    };
-};
 
 
 router.post("/socket", function(req, res, next) {
-    var tok;
-    var decoded;
-    try {
-        tok = req.headers.authorization.slice(7);
-        decoded = jwt.verify(tok, "helloKey");
-    } catch {
-        res
-        .status(401)
-        .json({
-            message: "oh no! it looks like your authorization token is invalid...",
-        });
-    };
-    let conn = new Connection(decoded.token, req.body.projectID);
-    console.log(conn.getSessionCode());
-    res.status(200).send({sessionID: conn.getSessionCode()});
-    //req.db.from("projectAccess").select('*').where({
-            //userId: decoded.token,
-            //projectID: req.body.projectID
-        //})
+    //var tok;
+    //var decoded;
+    //try {
+        //tok = req.headers.authorization.slice(7);
+        //decoded = jwt.verify(tok, "helloKey");
+    //} catch {
+        //res
+        //.status(401)
+        //.json({
+            //message: "oh no! it looks like your authorization token is invalid...",
+        //});
+    //};
+    //let conn = new Connection(decoded.token, req.body.projectID);
+    //console.log(conn.getSessionCode());
+    //res.status(200).send({sessionID: conn.getSessionCode()});
+    ////req.db.from("projectAccess").select('*').where({
+            ////userId: decoded.token,
+            ////projectID: req.body.projectID
+        ////})
 });
 
 
@@ -59,12 +35,41 @@ module.exports = function (io) {
         var projectID;
         try {
             projectID = socket.handshake.query.projectID;
-            decoded = jwt.verify(socket.handshake.query.user, "helloKey");
+            decoded = jwt.verify(socket.handshake.auth.token.slice(7), "helloKey");
+
+            //req.db.from("projectAccess").select('*').where({
+                //userID: decoded.token,
+                //projectID: projectID
+            //})
+            socket.join(projectID);
+
+            socket.on("update", (target, type, data) => {
+                try {
+                    //var room = crypto.createHash("sha256").update(target + type + toString(Math.random()))
+                                //.digest("base64");
+                    var projectID = socket.handshake.query.projectID;
+                    //console.log('1');
+                    //socket.in(projectID).join(room);
+                    //socket.leave(room);
+                    //console.log('2');
+                    console.log(data);
+                    socket.to(projectID).emit("update", target, type, data);
+                    //socket.in(room).leave(room);
+                    socket
+                } catch {
+                    socket.emit('updateFailed');
+                };
+            });
+
+            socket.emit("loginSuccess", socket.id);
+
         } catch {
+            socket.emit("loginFailure");
             socket.disconnect(true);
             return;
         }
         
+
     });
     return router;
 };

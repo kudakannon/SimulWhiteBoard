@@ -3,11 +3,13 @@
         <button v-on:click="startSocket">test socket</button>
         <p id='message'>{{ message }}</p>
         <p>{{ sessionID }}</p>
+        <textarea id='info'></textarea>
+        <button id='updateButton' v-on:click="updateInfo" disabled>update</button>
     </div>
 </template>
 
 <script>
-import { io } from 'socket.io-client'
+import { io, Socket } from 'socket.io-client'
 import { mapGetters } from 'vuex'
 
 export default ({
@@ -21,28 +23,45 @@ export default ({
     data() {
         return {
             message: "testing socket",
-            sessionID: ""
+            sessionID: "",
+            sock: null
         }
     },
     methods: {
-        startSocket(sessionID) {
-            var socket = io("http://localhost:10011", {query: {user: this.$auth.strategy.token.get(), projectID: 0}});
+        startSocket() {
+            var socket = io("http://localhost:10011", {auth: {token: this.$auth.$storage.getUniversal("_token.local")}, query: {projectID: 0}});
+            this.sock = socket;
             socket.on("connect", () => {
-                document.getElementById('message').innerHTML = "test complete";
+                this.message = "connected";
+            });
+
+            socket.on("loginSuccess", (sessionID) => {
+                this.sessionID = sessionID;
+                document.getElementById('updateButton').disabled = false;
+            });
+
+            socket.on("loginFailure", () => {
+                this.sessionID = "no ID";
+            });
+
+            socket.on("update", (target, type, data) => {
+                if (document.getElementById(target) != null) {
+                    if (type == 'value') {
+                        document.getElementById(target).value = data;
+                    }
+                }
+            });
+
+            socket.on("updateFail", () => {
+                this.message = "update failed";
             });
         },
-        getSessionID() {
-            this.$axios.post("socket", {projectID: 0}).then(res => {
-                this.sessionID = res.data.sessionID;
-                //app.startSocket(this.sessionID);
-            }).catch(err => {
-                //this.message = "failure";
-            });
+        updateInfo() {
+            this.sock.emit("update", "info", "value", document.getElementById('info').value);
         }
     },
     created() {
-        this.getSessionID();
-        this.message = this.$auth.$storage.getCookies();
+        this.message = this.$auth.$storage.getUniversal("_token.local");
     }
 })
 </script>
