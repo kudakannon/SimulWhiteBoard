@@ -257,7 +257,7 @@
                     "properties": {
                       "message": {
                         "type": "string",
-                        "example": "Error. Bruh"
+                        "example": "Error. Account was not created."
                       }
                     }
                   }
@@ -356,28 +356,22 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name":{
+                  "directorName":{
                     "type": "string",
                     "example": "Ben Smith",
-                    "description":"Client Name",
-                    "required":true
-                  },
-                  "phone":{
-                    "type": "string",
-                    "example": "04001 234 567",
-                    "description":"Client Phone",
-                    "required":true
-                  },
-                  "email":{
-                    "type": "string",
-                    "example": "bensmith@gmail.com",
-                    "description":"Client Email",
+                    "description":"Directors Name",
                     "required":true
                   },
                   "projectAddress":{
                     "type": "string",
-                    "example": "6 ProjectCreated Avenue",
-                    "description":"Address of Project",
+                    "example": "9 lange place",
+                    "description":"Project Address",
+                    "required":true
+                  },
+                  "companyName":{
+                    "type": "string",
+                    "example": "KFC",
+                    "description":"Client company name",
                     "required":true
                   },
                   "projectedCompletionDate": {
@@ -534,7 +528,7 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "userID":{
+                      "directorID":{
                         "type": "number",
                         "example": 1,
                         "description":"User ID"
