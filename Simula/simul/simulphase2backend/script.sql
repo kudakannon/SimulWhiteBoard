@@ -111,7 +111,7 @@ CREATE TABLE pinterestBoards (
     PRIMARY KEY (boardID, projectID),
 	FOREIGN KEY(projectID) REFERENCES project(projectID),
 	FOREIGN KEY(userID) REFERENCES users(userID)
-);
+    );
 
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'thisIsASimulPassword1!';
 FLUSH privileges;

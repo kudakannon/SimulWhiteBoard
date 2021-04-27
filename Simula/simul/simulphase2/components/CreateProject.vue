@@ -172,7 +172,7 @@ export default {
     
     return {
       directorName: "",
-      projectAddress: "What what what",
+      projectAddress: "",
       companyName: "",
       completionDate: "",
       error: null,
@@ -189,7 +189,7 @@ export default {
       ],
       stages: [{ name: "PHASE 1: PRE-DESIGN" }],
       numRoles: 0,
-      roles: [{ name: "Role 1", weight: "1", roleNo: "1"}],
+      roles: [{ name: "Role 0", weight: "1", roleNo: "1"}],
       
     };
   },
@@ -211,36 +211,47 @@ export default {
         userID: this.loggedInUser.userID
       });
       
-      //ADD COLLABORATORS FOR PROJECT
-      // try {
-      //   await this.$axios.post("addcollabs", {
-      //     projectID: project.data.projectID,
-      //     clientID: project.data.clientToken
-      //   });
-      // } catch (e) {
-      //   this.error = e.response.data.message;
-      // }
-      // ADD ROLES OF DEVELOPMENT
-      try {
-        await this.$axios.post("addRoles", {
-          projectID: project.data.projectID,
-          roles: this.roles
-        });
-        this.$router.push("/projects");
-      } catch (e) {
-        this.error = e.response.data.message;
-      }
 
-
-      try {
-        await this.$axios.post("addStages", {
-          projectID: project.data.projectID,
-          stages: this.stages
-        });
-        this.$router.push("/projects");
-      } catch (e) {
-        this.error = e.response.data.message;
+      // ADD STAGES OF DEVELOPMENT
+  
+      for(var i = 0; i<this.stages.length; i++){
+        for(var j = 0; j<this.stages.length; j++){
+          if((this.stages[i].name == this.stages[j].name)&&(i!=j)){
+            this.stages.splice(j,1);
+          }
+        }
       }
+        try {
+          await this.$axios.post("addStages", {
+            projectID: project.data.projectID,
+            stages: this.stages
+          });
+          this.$router.push("/projects");
+        } catch (e) {
+          this.error = e.response.data.message;
+        }
+    
+    //  ADD ROLES OF DEVELOPMENT
+      for(var i = 0; i<this.roles.length; i++){
+        for(var j = 0; j<this.roles.length; j++){
+          if((this.roles[i].name == this.roles[j].name)&&(i!=j)){
+            this.roles.splice(j,1);
+          }
+
+        }
+      }
+      
+        try {
+          await this.$axios.post("addRoles", {
+            projectID: project.data.projectID,
+            roles: this.roles
+          });
+          this.$router.push("/projects");
+        } catch (e) {
+          this.error = e.response.data.message;
+        }
+      
+      
       
     },
     addStageFn() {
@@ -263,6 +274,8 @@ export default {
       }
       this.roles.splice(rn, 1);
     }
+
+   
   }
 };
 </script>
