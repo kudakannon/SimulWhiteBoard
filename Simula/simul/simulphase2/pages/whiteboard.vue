@@ -1,3 +1,45 @@
+
+<template>
+<span>
+    <div v-if="(connected && loaded)" id="wframecontainer">
+        <div id="whiteboardframe" v-on:mousedown="moveWhiteboard">
+            <div id="toolbar" v-on:mousedown.stop>
+                <div v-for="{name, imgurl} in tools" :key="name" class="toolselector" v-on:clock.stop="useTool(name)">
+                    {{name + imgurl}}
+                </div>
+            </div>
+            <div id="whiteboard" :style="{height: wdata.height, width: wdata.width}" 
+                v-on:drop="dropElement" v-on:dragover.prevent>
+                <template v-for="[key ,element] of wdata.elements">
+                    <template v-if="element.get('type')=='postit'">
+                        <div :key="key" :id="element.get('id')" 
+                            :class="element.get('type') + ' ' + element.get('id')"
+                            v-on:mousedown.stop v-on:dragstart="dragElement" draggable 
+                            v-observer:subtree.attributes="resizeHandler"
+                            :style="{height: element.get('height'), width: element.get('width'), 
+                            top: element.get('top'), left: element.get('left')}">
+
+                            <textarea class="label" :class="element.get('id')" :value="element.get('label')" 
+                                v-on:click.stop v-on:input="sendTextUpdate" />
+                            <textarea class="text" :class="element.get('id')" :value="element.get('text')" 
+                                v-on:click.stop v-on:input="sendTextUpdate" />
+                        </div>
+                    </template>
+                    <template v-else>
+                        <div :key="key">
+                        </div>
+                    </template>
+                </template>
+            </div>
+        </div>
+    </div>
+    <div v-else>
+        <Loading />
+    </div>
+</span>
+</template>
+
+
 <script>
 import Loading from "~/components/Loading"
 import { io, Socket } from 'socket.io-client'
@@ -50,7 +92,6 @@ export default ({
 
                 var wjson = await this.$axios.$get('http://localhost:3000/testdata.json');
                 this.buildWhiteboard(wjson);
-                this.loaded = true;
             }
         },
 
@@ -91,6 +132,9 @@ export default ({
                 var newmap = new Map(Object.entries(elem));
                 this.wdata.elements.set(elem.id, newmap);
             }
+
+            this.loaded = true;
+            this.$forceUpdate();
             
             
         },
@@ -164,13 +208,18 @@ export default ({
             this.updateLocation(target, data);
             this.sock.emit("update", target, "move", data);
         },
-        resizeObserver(mutationsList, observer) {
+        resizeHandler(mutationsList) {
             for (const m of mutationsList) {
                 try {
                     if (m.type == "attributes" && m.attributeName == "style") {
-                        if (m.target[m.attributeName] != m.oldValue) {
-                            this.sendResizeUpdate();
+                        var style = m.target[m.attributeName];
+                        var oldheight = this.wdata.elements.get(m.target['id']).get('height');
+                        var oldwidth = this.wdata.elements.get(m.target['id']).get('width');
+
+                        if (!(style.height == oldheight && style.width == oldwidth)) {
+                            this.sendResizeUpdate(m.target);
                         }
+                    
                     }
                 } catch { console.log('resize observer fail')};
             }
@@ -191,7 +240,7 @@ export default ({
         },
         sendResizeUpdate(element) {
             var target = this.getClassQuery(element);
-            var data = {height: element.style.height, width: element.style.left};
+            var data = {height: element.style.height, width: element.style.width};
 
             this.updateSize(target, data);
             this.sock.emit("update", target, "resize", data)
@@ -264,7 +313,7 @@ export default ({
         
         
     },
-    render: function(createElement) {
+    /*render: function(createElement) {
         var app = this;
         if (this.connected && this.loaded) {
             return createElement('div', {attrs: {id: 'wframecontainer'}},[
@@ -280,7 +329,7 @@ export default ({
                                     this.useTool(tool.name)
                                 }
                             }
-                        },/*implement tool images here*/tool.name);
+                        },/*implement tool images heretool.name);
                     })),
 
                     //the display part of the whiteboard
@@ -341,16 +390,14 @@ export default ({
             return createElement('Loading');
         }
         
-    },
+    },*/
     created() {
         this.startWhiteboard();
-        //this.resizeObs = new MutationObserver(this.resizeObserver);
+        
         
     },
     beforeUpdated() {
-        try {
-            //this.resizeObs.disconnect();
-        } catch {};
+        observer.disconnect();
     },
     updated() {
         //try {
@@ -443,7 +490,7 @@ export default ({
         border-color: black;
         overflow: hidden;
         padding: 5px;
-        /*resize: both;*/
+        resize: both;
     }
 
     textarea.label {
