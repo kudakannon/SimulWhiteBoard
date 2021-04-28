@@ -2,12 +2,16 @@
 import Loading from "~/components/Loading"
 import { io, Socket } from 'socket.io-client'
 import { mapGetters } from 'vuex'
+import { observer } from 'vue-mutation-observer'
 
 
 export default ({
     middleware: "auth",
     computed: {
         ...mapGetters(["loggedInUser"])
+    },
+    directives: {
+        observer
     },
     data() {
         return {
@@ -45,7 +49,6 @@ export default ({
                 
 
                 var wjson = await this.$axios.$get('http://localhost:3000/testdata.json');
-                console.log(wjson);
                 this.buildWhiteboard(wjson);
                 this.loaded = true;
             }
@@ -84,12 +87,10 @@ export default ({
         buildWhiteboard(wjson) {
             this.wdata.height = wjson.height;
             this.wdata.width = wjson.width;
-
-            for (var elem in wjson.elements) {
+            for (var elem of wjson.elements) {
                 var newmap = new Map(Object.entries(elem));
                 this.wdata.elements.set(elem.id, newmap);
             }
-            console.log(this.wdata.elements);
             
             
         },
@@ -100,38 +101,100 @@ export default ({
             var classlist = element.classList;
             var classes = "";
             for (var c of classlist.values()) {
-                classes = classes + "." + c;
+                classes = classes + c + " ";
             }
             return classes;
         },
+        splitTarget(target) {
+            var targets = target.trim().split(' ');
+            var result = [];
 
+            for (var s of targets) {
+                if (this.wdata.elements.has(s)) {
+                    result.unshift(s);
+                } else {
+                    result.push(s);
+                }
+            }
+            return result;
+
+        },
+        updateText(target, data) {
+            var keys = this.splitTarget(target);
+            var map = this.wdata.elements;
+            for (var i = 0; i < keys.length - 1; i++) {
+                map = map.get(keys[i]);
+
+            }
+
+
+            map.set(keys.pop(), data);
+        },
         receiveTextUpdate(target, data) {
-            document.querySelector(target).value = data;
+            this.updateText(target, data);
+            this.$forceUpdate();
+            //document.querySelector(target).value = data;
         },
         
         sendTextUpdate(event) {
             var target = this.getClassQuery(event.target);
+
+            this.updateText(target, event.target.value);
             
             this.sock.emit("update", target, "text", event.target.value);
         },
+        updateLocation(target, data) {
+            var keys = this.splitTarget(target);
+            
+            this.wdata.elements.get(keys[0]).set('top', data.top);
+            this.wdata.elements.get(keys[0]).set('left', data.left);
+        },
         receiveMoveUpdate(target, data) {
-            var element = document.querySelector(target);
-            element.style.top = data.top;
-            element.style.left = data.left;
+            this.updateLocation(target, data);
+
+            this.$forceUpdate();
+            //var element = document.querySelector(target);
+            //element.style.top = data.top;
+            //element.style.left = data.left;
         },
         sendMoveUpdate(element) {
             var target = this.getClassQuery(element);
+            var data = {top: element.style.top, left: element.style.left};
 
-            this.sock.emit("update", target, "move", {top: element.style.top, left: element.style.left});
+            this.updateLocation(target, data);
+            this.sock.emit("update", target, "move", data);
+        },
+        resizeObserver(mutationsList, observer) {
+            for (const m of mutationsList) {
+                try {
+                    if (m.type == "attributes" && m.attributeName == "style") {
+                        if (m.target[m.attributeName] != m.oldValue) {
+                            this.sendResizeUpdate();
+                        }
+                    }
+                } catch { console.log('resize observer fail')};
+            }
+        },
+        updateSize(target, data) {
+            var keys = this.splitTarget(target);
+            
+            this.wdata.elements.get(keys[0]).set('height', data.height);
+            this.wdata.elements.get(keys[0]).set('width', data.width);
         },
         receiveResizeUpdate(target, data) {
-            var element = document.querySelector(target);
-            element.style.height = data.height;
-            element.style.width = data.width;
+            this.updateSize(target, data);
+
+            this.$forceUpdate();
+            //var element = document.querySelector(target);
+            //element.style.height = data.height;
+            //element.style.width = data.width;
         },
         sendResizeUpdate(element) {
             var target = this.getClassQuery(element);
-            this.sock.emit("update", target, "resize", {height: element.style.height, width: element.style.left})
+            var data = {height: element.style.height, width: element.style.left};
+
+            this.updateSize(target, data);
+            this.sock.emit("update", target, "resize", data)
         },
         moveWhiteboard(event) {
             //look grabbed, don't highlight text
@@ -232,7 +295,8 @@ export default ({
                             dragover: (event) => {event.preventDefault()}
                         }
                     },//all whiteboard elements
-                    this.wdata.elements.forEach((element, key) => {
+                    
+                    Array.from(this.wdata.elements.entries()).map(([key, element]) => {
                         //postit elements
                         if (element.get('type') == 'postit') {
                             return createElement('div', {
@@ -252,8 +316,8 @@ export default ({
                                 }
                             },[
                                 createElement('textarea', {
-                                    domProps: {value: element.get('title')},
-                                    class: ['titlebox', element.get('id')],
+                                    domProps: {value: element.get('label')},
+                                    class: ['label', element.get('id')],
                                     on: {
                                         click: (event) => {event.stopPropagation()},
                                         input: (event) => {this.sendTextUpdate(event)},
@@ -261,7 +325,7 @@ export default ({
                                 }),
                                 createElement('textarea', {
                                     domProps: {value: element.get('text')},
-                                    class: ['textbox', element.get('id')],
+                                    class: ['text', element.get('id')],
                                     on: {
                                         input: (event) => {this.sendTextUpdate(event)},
                                     },
@@ -270,7 +334,7 @@ export default ({
                         }else {
                             return "this isn't it";
                         };//implement other elements here
-                    }))//end whiteboard createElement
+                    })),//end whiteboard createElement
                 ])//end whiteboardframe createElement
             ]);//end whiteboardcontainer createElement
         } else {
@@ -279,23 +343,24 @@ export default ({
         
     },
     created() {
-        return this.startWhiteboard();
+        this.startWhiteboard();
+        //this.resizeObs = new MutationObserver(this.resizeObserver);
+        
+    },
+    beforeUpdated() {
+        try {
+            //this.resizeObs.disconnect();
+        } catch {};
     },
     updated() {
-        try {
-            var ro = new ResizeObserver(entries => {
-                for (let entry of entries) {
-                    this.sendResizeUpdate(entry.target);
-                }
-            })
-            var elements = document.getElementById('whiteboard').children;
-
-            for (var e of elements) {
-                ro.observe(e);
-            };
-
-            this.resizeObs = ro;
-        } finally {};
+        //try {
+            
+            //var elements = document.getElementById('whiteboard').children;
+            //console.log(elements);
+            //for (var e of elements) {
+               // this.resizeObs.observe(e, {attributeFilter: ['style'], attributeOldValue: true});
+            //};
+        //} finally {};
     }
 })
 </script>
@@ -378,10 +443,10 @@ export default ({
         border-color: black;
         overflow: hidden;
         padding: 5px;
-        resize: both;
+        /*resize: both;*/
     }
 
-    textarea.titlebox {
+    textarea.label {
         display: inline-block;
         width: 100%;
         height: 25px;
@@ -391,7 +456,7 @@ export default ({
         resize: none;
     }
 
-    textarea.textbox {
+    textarea.text {
         display: inline-block;
         width: 100%;
         height: 80%;
