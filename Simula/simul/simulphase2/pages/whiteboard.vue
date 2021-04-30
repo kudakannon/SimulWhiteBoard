@@ -4,8 +4,9 @@
     <div v-if="(connected && loaded)" id="wframecontainer">
         <div id="whiteboardframe" v-on:mousedown="moveWhiteboard">
             <div id="toolbar" v-on:mousedown.stop>
-                <div v-for="{name, imgurl} in tools" :key="name" class="toolselector" v-on:clock.stop="useTool(name)">
-                    {{name + imgurl}}
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+                <div v-for="{name, icon} in tools" :key="name" class="toolselector" v-on:click.stop="useTool(name)">
+                    <i class="fa" :class="icon" aria-hidden="true" ></i>
                 </div>
             </div>
             <div id="whiteboard" :style="{height: wdata.height, width: wdata.width}" 
@@ -70,10 +71,15 @@ export default ({
             },
             //all tools in toolbar: {name: "", imgurl: ""}
             tools: [
-                {name:"Reset", imgurl: ""}, 
-                {name:"Pstit", imgurl: ""}, 
-                {name:"Pen", imgurl: ""},
-                {name:"Pncl", imgurl: ""}
+                {name:"mouse", icon: "fa-mouse-pointer"}, 
+                {name:"edit", icon: "fa-edit"}, 
+                {name:"font", icon: "fa-font"},
+                {name:"sticky", icon: "fa-sticky-note"},
+                {name:"image", icon: "fa-image"},
+                {name:"comment", icon: "fa-comment"},
+                {name:"save", icon: "fa-save"},
+                {name:"thumbup", icon: "fa-thumbs-up"},
+                {name:"thumbdown", icon: "fa-thumbs-down"}
             ],
 
             resizeObs: null,
@@ -138,6 +144,7 @@ export default ({
             
             
         },
+        /*tool handler*/
         useTool(toolname) {
             console.log(toolname);
         },
@@ -446,27 +453,31 @@ export default ({
 
     #toolbar {
         /*hover over whiteboard*/
-        display: block;
+        display: inline-block;
         position: sticky;
         z-index: 1;
-
-        top: 100px;
-        left: 50px;
-        width: 50px;
-        border-radius: 12px;
-        background-color: darkgrey;
-        padding: 10px 5px;
-        user-select: none;
+        top: 10%;
+        left:5%;
+        margin: 0;
+        padding: 20px 20px;
+        /*width:50px;*/
+        border-radius: 5px;
+        background: rgb(0, 0, 0); 
+        line-height: 35px;
+        cursor: default;
     }
 
     div.toolselector {
-        background-color: grey;
+        
         height: 35px;
         text-align: center;
+        /*background-color: grey;
         border: 2px black;
-        border-style: solid none;
+        border-style: solid none;*/
+        color: seashell;
         
     }
+
 
     #whiteboard {
             /*removes whitespace*/
