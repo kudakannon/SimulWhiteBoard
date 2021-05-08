@@ -64,7 +64,7 @@ export default ({
             sessionID: "",
             sock: null,
             wdata: {
-                name: "0",
+                name: this.$route.query.id,
                 height: "",
                 width: "",
                 elements: new Map(),
@@ -93,6 +93,7 @@ export default ({
     methods: {
         async startWhiteboard() {
             if (this.loggedInUser) {
+
                 this.startSocket();
                 
 
@@ -102,6 +103,7 @@ export default ({
         },
 
         startSocket() {
+            console.log(this.wdata.name);
             this.sock = io("http://localhost:10011", {
                 auth: {token: this.$auth.$storage.getUniversal("_token.local")}, 
                 query: {projectID: this.wdata.name}
@@ -112,7 +114,7 @@ export default ({
             });
 
             this.sock.on("loginFailure", () => {
-                this.connected = true;
+                console.log('failure');
                 this.sock.disconnect();
             });
 
