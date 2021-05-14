@@ -97,8 +97,8 @@ export default ({
                 this.startSocket();
                 
 
-                var wjson = await this.$axios.$get('http://localhost:3000/testdata.json');
-                this.buildWhiteboard(wjson);
+                //var wjson = await this.$axios.$get('http://localhost:3000/testdata.json');
+                //this.buildWhiteboard(wjson);
             }
         },
 
@@ -108,9 +108,11 @@ export default ({
                 auth: {token: this.$auth.$storage.getUniversal("_token.local")}, 
                 query: {projectID: this.wdata.name}
             });
-            this.sock.on("loginSuccess", (sessionID) => {
+            this.sock.on("loginSuccess", (sessionID, wjson) => {
+                console.log('2');
                 this.sessionID = sessionID;
                 this.connected = true;
+                this.buildWhiteboard(JSON.parse(wjson));
             });
 
             this.sock.on("loginFailure", () => {
