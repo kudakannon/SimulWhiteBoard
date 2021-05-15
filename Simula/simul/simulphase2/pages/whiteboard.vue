@@ -63,6 +63,8 @@ export default ({
             loaded: false,
             sessionID: "",
             sock: null,
+            tool: "mouse",
+            cursor: "grab",
             wdata: {
                 name: this.$route.query.id,
                 height: "",
@@ -150,7 +152,13 @@ export default ({
         },
         /*tool handler*/
         useTool(toolname) {
-            console.log(toolname);
+            this.tool = toolname;
+
+            if (toolname === "mouse") {
+                document.getElementById('whiteboardframe').style.cursor = "grab";
+            } else {
+                document.getElementById('whiteboardframe').style.cursor = "crosshair";
+            }
         },
         getClassQuery(element) {
             var classlist = element.classList;
@@ -256,6 +264,13 @@ export default ({
             this.updateSize(target, data);
             this.sock.emit("update", target, "resize", data)
         },
+        whiteboardMouseDown(event) {
+            if (tool === "mouse") {
+                this.moveWhiteboard(event);
+            } else if (tool === "sticky") {
+                
+            }
+        },
         moveWhiteboard(event) {
             //look grabbed, don't highlight text
             var wframe = document.getElementById('whiteboardframe');
@@ -294,6 +309,18 @@ export default ({
             document.removeEventListener('mousemove', this.dragWhiteboard);
             document.removeEventListener('mouseup', this.releaseWhiteboard);
 
+        },
+
+        newStickynote(event) {
+            var wframe = document.getElementById('whiteboardframe');
+            var box = document.createElement(svg);
+            box.style.top = event.clientY;
+            box.style.left = event.clientX;
+            box.style.width = 0;
+            box.style.height = 0;
+
+            document.addEventListener('mousemove', this.dragWhiteboard);
+            document.addEventListener('mouseup', this.releaseWhiteboard);
         },
     
         dragElement(event) {
@@ -525,6 +552,19 @@ export default ({
         cursor: default;
         overflow-y: scroll;
         resize: none;
+    }
+
+    #dragbox {
+        display: block;
+    }
+
+    #dragbox.rect {
+        height: 100%;
+        width: 100%;
+        stroke: black;
+        stroke-dasharray: 10;
+        fill-opacity: 0.2;
+        fill: lightyellow;
     }
 
 
