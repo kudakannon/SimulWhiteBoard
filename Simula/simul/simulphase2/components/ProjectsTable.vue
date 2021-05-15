@@ -29,7 +29,7 @@ export default {
       var newAddress = item.projectAddress;
       newAddress = newAddress.replace(/\s+/g, "-");
       const newRoute =
-        "/project?project=" +
+        "/viewProject?project=" +
         item.projectID +
         "&address=" +
         newAddress;

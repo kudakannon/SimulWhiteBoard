@@ -5,23 +5,23 @@
         <nuxt-link
           to="/createproject"
           class="button is-dark is-fullwidth"
-          v-if="loggedInUser.userType != 'director'"
+          v-if="loggedInUser.userType == 'director'"
           >Create Project</nuxt-link
         >
       </div>
-      <h4 v-if="loggedInUser.userType == 'director' && currentProjects.length == 0">
+      <h4 v-if="loggedInUser.userType != 'director' && currentProjects.length == 0">
         Projects will appear here when your architects have created projects.
       </h4>
       <h2
-        v-if="loggedInUser.userType != 'director' && currentProjects.length == 0"
+        v-if="loggedInUser.userType == 'director' && currentProjects.length == 0"
         class="h4 has-text-centered" id="no-projects"
       >
         No Projects!
       </h2>
-      <ProjectsTable projectStatus="Current Projects" :projects="currentProjects" :isBusy="isBusy" />
-      <ProjectsTable projectStatus="Completed Projects" :projects="completedProjects" :isBusy="isBusy" />
-      <ProjectsTable projectStatus="Cancelled Projects" :projects="cancelledProjects" :isBusy="isBusy" />
-      <ProjectsTable projectStatus="Paused Projects" :projects="pausedProjects" :isBusy="isBusy" />
+      <ProjectsTable projectStatus="Current Projects" v-if="currentProjects.length > 0" :projects="currentProjects" :isBusy="isBusy" />
+      <ProjectsTable projectStatus="Completed Projects" v-if="completedProjects.length > 0" :projects="completedProjects" :isBusy="isBusy" />
+      <ProjectsTable projectStatus="Cancelled Projects" v-if="cancelledProjects.length > 0" :projects="cancelledProjects" :isBusy="isBusy" />
+      <ProjectsTable projectStatus="Paused Projects" v-if="pausedProjects.length > 0" :projects="pausedProjects" :isBusy="isBusy" />
       
     </div>
   </div>
@@ -31,7 +31,6 @@
 import Loading from "~/components/Loading";
 import ProjectsTable from "~/components/ProjectsTable";
 import { mapGetters } from "vuex";
-
 export default {
   middleware: "auth",
   computed: {
@@ -79,11 +78,9 @@ export default {
   height: 100%;
   width: 80%;
 }
-
 table.b-table[aria-busy="true"] {
   opacity: 0.6;
 }
-
 .btn {
   background-color: #de4442;
   border: none;
@@ -92,16 +89,13 @@ table.b-table[aria-busy="true"] {
   font-size: 16px;
   cursor: pointer;
 }
-
 /* Darker background on mouse-over */
 .btn:hover {
   background-color: #b62825;
 }
-
 .buttonClass {
   float: right;
 }
-
 #no-projects {
     margin: 20px;
 }

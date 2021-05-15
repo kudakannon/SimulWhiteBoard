@@ -1,4 +1,12 @@
+<template>
+    <div id="wframecontainer">
+        <div id="whiteboardframe" onmousedown="moveWhiteboard(event)">
+
+            <div id="toolbar" onmousedown="stopEvent(event)">
+                <div class="toolselector" onclick="divtest()">Reset</div>
                 <div class="toolselector">PST</div>
+                <div class="toolselector">PEN</div>
+                <div class="toolselector">PNCL</div>
             </div>
 
             <div id="whiteboard" ondrop="drop(event)" ondragover="allowdrop(event)">

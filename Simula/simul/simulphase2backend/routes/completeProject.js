@@ -16,7 +16,6 @@ router.post("/completeproject", function(req, res, next) {
       return res.status(200).send({message: "Project has been completed"});
     })
     .catch(err => {
-      console.log(err);
       return res.status(400).send({ message: err });
     });
 });

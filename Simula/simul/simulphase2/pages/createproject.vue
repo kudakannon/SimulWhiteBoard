@@ -15,6 +15,7 @@
 import CreateProject from "~/components/CreateProject";
 
 export default {
+  
   middleware: "auth",
   components: {
     CreateProject
