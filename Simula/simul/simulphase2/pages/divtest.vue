@@ -4,6 +4,7 @@
 
             <div id="toolbar" onmousedown="stopEvent(event)">
                 <div class="toolselector" v-on:click="divtest">Reset</div>
+
                 <div class="toolselector">PST</div>
                 <div class="toolselector">PEN</div>
                 <div class="toolselector">PNCL</div>
@@ -13,7 +14,10 @@
             </div>
             
         </div>
+
+
         <script type="application/javascript" charset="UTF-8" src="./divtest.js"></script>
+
     </div>	
 </template>
 
