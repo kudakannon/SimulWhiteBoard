@@ -1,4 +1,4 @@
-DROP DATABASE simul;
+--DROP DATABASE simul;
 CREATE DATABASE simul;
 USE simul;
 

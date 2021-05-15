@@ -219,7 +219,6 @@ export default {
         }
       }
         try {
-          
           await this.$axios.post("addStages", {
             projectID: project.data.projectID,
             stages: this.stages
@@ -238,20 +237,16 @@ export default {
 
         }
       }
-      for(var i = 0; i<this.roles.length;i++){
-            try {
+      
+        try {
           await this.$axios.post("addRoles", {
             projectID: project.data.projectID,
-            roleName: this.roles[i].name,
-            roleWeight: this.roles[i].weight
+            roles: this.roles
           });
           this.$router.push("/projects");
         } catch (e) {
           this.error = e.response.data.message;
         }
-      }
-      
-        
       
       
       
