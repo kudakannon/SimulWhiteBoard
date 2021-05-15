@@ -1,13 +1,60 @@
+
+<template>
+<span>
+    <div v-if="(connected && loaded)" id="wframecontainer">
+        <div id="whiteboardframe" v-on:mousedown="moveWhiteboard">
+            <div id="toolbar" v-on:mousedown.stop>
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+                <div v-for="{name, icon} in tools" :key="name" class="toolselector" v-on:click.stop="useTool(name)">
+                    <i class="fa" :class="icon" aria-hidden="true" ></i>
+                </div>
+            </div>
+            <div id="whiteboard" :style="{height: wdata.height, width: wdata.width}" 
+                v-on:drop="dropElement" v-on:dragover.prevent>
+                <template v-for="[key ,element] of wdata.elements">
+                    <template v-if="element.get('type')=='postit'">
+                        <div :key="key" :id="element.get('id')" 
+                            :class="element.get('type') + ' ' + element.get('id')"
+                            v-on:mousedown.stop v-on:dragstart="dragElement" draggable 
+                            v-observer:subtree.attributes="resizeHandler"
+                            :style="{height: element.get('height'), width: element.get('width'), 
+                            top: element.get('top'), left: element.get('left')}">
+
+                            <textarea class="label" :class="element.get('id')" :value="element.get('label')" 
+                                v-on:click.stop v-on:input="sendTextUpdate" />
+                            <textarea class="text" :class="element.get('id')" :value="element.get('text')" 
+                                v-on:click.stop v-on:input="sendTextUpdate" />
+                        </div>
+                    </template>
+                    <template v-else>
+                        <div :key="key">
+                        </div>
+                    </template>
+                </template>
+            </div>
+        </div>
+    </div>
+    <div v-else>
+        <Loading />
+    </div>
+</span>
+</template>
+
+
 <script>
 import Loading from "~/components/Loading"
 import { io, Socket } from 'socket.io-client'
 import { mapGetters } from 'vuex'
+import { observer } from 'vue-mutation-observer'
 
 
 export default ({
     middleware: "auth",
     computed: {
         ...mapGetters(["loggedInUser"])
+    },
+    directives: {
+        observer
     },
     data() {
         return {
@@ -16,18 +63,25 @@ export default ({
             loaded: false,
             sessionID: "",
             sock: null,
+            tool: "mouse",
+            cursor: "grab",
             wdata: {
-                name: "0",
+                name: this.$route.query.id,
                 height: "",
                 width: "",
                 elements: new Map(),
             },
             //all tools in toolbar: {name: "", imgurl: ""}
             tools: [
-                {name:"Reset", imgurl: ""}, 
-                {name:"Pstit", imgurl: ""}, 
-                {name:"Pen", imgurl: ""},
-                {name:"Pncl", imgurl: ""}
+                {name:"mouse", icon: "fa-mouse-pointer"}, 
+                {name:"edit", icon: "fa-edit"}, 
+                {name:"font", icon: "fa-font"},
+                {name:"sticky", icon: "fa-sticky-note"},
+                {name:"image", icon: "fa-image"},
+                {name:"comment", icon: "fa-comment"},
+                {name:"save", icon: "fa-save"},
+                {name:"thumbup", icon: "fa-thumbs-up"},
+                {name:"thumbdown", icon: "fa-thumbs-down"}
             ],
 
             resizeObs: null,
@@ -41,28 +95,30 @@ export default ({
     methods: {
         async startWhiteboard() {
             if (this.loggedInUser) {
+
                 this.startSocket();
                 
 
-                var wjson = await this.$axios.$get('http://localhost:3000/testdata.json');
-                console.log(wjson);
-                this.buildWhiteboard(wjson);
-                this.loaded = true;
+                //var wjson = await this.$axios.$get('http://localhost:3000/testdata.json');
+                //this.buildWhiteboard(wjson);
             }
         },
 
         startSocket() {
+            console.log(this.wdata.name);
             this.sock = io("http://localhost:10011", {
                 auth: {token: this.$auth.$storage.getUniversal("_token.local")}, 
                 query: {projectID: this.wdata.name}
             });
-            this.sock.on("loginSuccess", (sessionID) => {
+            this.sock.on("loginSuccess", (sessionID, wjson) => {
+                console.log('2');
                 this.sessionID = sessionID;
                 this.connected = true;
+                this.buildWhiteboard(JSON.parse(wjson));
             });
 
             this.sock.on("loginFailure", () => {
-                this.connected = true;
+                console.log('failure');
                 this.sock.disconnect();
             });
 
@@ -84,54 +140,136 @@ export default ({
         buildWhiteboard(wjson) {
             this.wdata.height = wjson.height;
             this.wdata.width = wjson.width;
-
-            for (var elem in wjson.elements) {
+            for (var elem of wjson.elements) {
                 var newmap = new Map(Object.entries(elem));
                 this.wdata.elements.set(elem.id, newmap);
             }
-            console.log(this.wdata.elements);
+
+            this.loaded = true;
+            this.$forceUpdate();
             
             
         },
+        /*tool handler*/
         useTool(toolname) {
-            console.log(toolname);
+            this.tool = toolname;
+
+            if (toolname === "mouse") {
+                document.getElementById('whiteboardframe').style.cursor = "grab";
+            } else {
+                document.getElementById('whiteboardframe').style.cursor = "crosshair";
+            }
         },
         getClassQuery(element) {
             var classlist = element.classList;
             var classes = "";
             for (var c of classlist.values()) {
-                classes = classes + "." + c;
+                classes = classes + c + " ";
             }
             return classes;
         },
+        splitTarget(target) {
+            var targets = target.trim().split(' ');
+            var result = [];
 
+            for (var s of targets) {
+                if (this.wdata.elements.has(s)) {
+                    result.unshift(s);
+                } else {
+                    result.push(s);
+                }
+            }
+            return result;
+
+        },
+        updateText(target, data) {
+            var keys = this.splitTarget(target);
+            var map = this.wdata.elements;
+            for (var i = 0; i < keys.length - 1; i++) {
+                map = map.get(keys[i]);
+
+            }
+
+
+            map.set(keys.pop(), data);
+        },
         receiveTextUpdate(target, data) {
-            document.querySelector(target).value = data;
+            this.updateText(target, data);
+            this.$forceUpdate();
+            //document.querySelector(target).value = data;
         },
         
         sendTextUpdate(event) {
             var target = this.getClassQuery(event.target);
+
+            this.updateText(target, event.target.value);
             
             this.sock.emit("update", target, "text", event.target.value);
         },
+        updateLocation(target, data) {
+            var keys = this.splitTarget(target);
+            
+            this.wdata.elements.get(keys[0]).set('top', data.top);
+            this.wdata.elements.get(keys[0]).set('left', data.left);
+        },
         receiveMoveUpdate(target, data) {
-            var element = document.querySelector(target);
-            element.style.top = data.top;
-            element.style.left = data.left;
+            this.updateLocation(target, data);
+
+            this.$forceUpdate();
+            //var element = document.querySelector(target);
+            //element.style.top = data.top;
+            //element.style.left = data.left;
         },
         sendMoveUpdate(element) {
             var target = this.getClassQuery(element);
+            var data = {top: element.style.top, left: element.style.left};
 
-            this.sock.emit("update", target, "move", {top: element.style.top, left: element.style.left});
+            this.updateLocation(target, data);
+            this.sock.emit("update", target, "move", data);
+        },
+        resizeHandler(mutationsList) {
+            for (const m of mutationsList) {
+                try {
+                    if (m.type == "attributes" && m.attributeName == "style") {
+                        var style = m.target[m.attributeName];
+                        var oldheight = this.wdata.elements.get(m.target['id']).get('height');
+                        var oldwidth = this.wdata.elements.get(m.target['id']).get('width');
+
+                        if (!(style.height == oldheight && style.width == oldwidth)) {
+                            this.sendResizeUpdate(m.target);
+                        }
+                    
+                    }
+                } catch { console.log('resize observer fail')};
+            }
+        },
+        updateSize(target, data) {
+            var keys = this.splitTarget(target);
+            
+            this.wdata.elements.get(keys[0]).set('height', data.height);
+            this.wdata.elements.get(keys[0]).set('width', data.width);
         },
         receiveResizeUpdate(target, data) {
-            var element = document.querySelector(target);
-            element.style.height = data.height;
-            element.style.width = data.width;
+            this.updateSize(target, data);
+
+            this.$forceUpdate();
+            //var element = document.querySelector(target);
+            //element.style.height = data.height;
+            //element.style.width = data.width;
         },
         sendResizeUpdate(element) {
             var target = this.getClassQuery(element);
-            this.sock.emit("update", target, "resize", {height: element.style.height, width: element.style.left})
+            var data = {height: element.style.height, width: element.style.width};
+
+            this.updateSize(target, data);
+            this.sock.emit("update", target, "resize", data)
+        },
+        whiteboardMouseDown(event) {
+            if (tool === "mouse") {
+                this.moveWhiteboard(event);
+            } else if (tool === "sticky") {
+                
+            }
         },
         moveWhiteboard(event) {
             //look grabbed, don't highlight text
@@ -172,6 +310,18 @@ export default ({
             document.removeEventListener('mouseup', this.releaseWhiteboard);
 
         },
+
+        newStickynote(event) {
+            var wframe = document.getElementById('whiteboardframe');
+            var box = document.createElement(svg);
+            box.style.top = event.clientY;
+            box.style.left = event.clientX;
+            box.style.width = 0;
+            box.style.height = 0;
+
+            document.addEventListener('mousemove', this.dragWhiteboard);
+            document.addEventListener('mouseup', this.releaseWhiteboard);
+        },
     
         dragElement(event) {
             event.dataTransfer.setData('text', event.target.id);
@@ -201,7 +351,7 @@ export default ({
         
         
     },
-    render: function(createElement) {
+    /*render: function(createElement) {
         var app = this;
         if (this.connected && this.loaded) {
             return createElement('div', {attrs: {id: 'wframecontainer'}},[
@@ -217,7 +367,7 @@ export default ({
                                     this.useTool(tool.name)
                                 }
                             }
-                        },/*implement tool images here*/tool.name);
+                        },/*implement tool images heretool.name);
                     })),
 
                     //the display part of the whiteboard
@@ -232,7 +382,8 @@ export default ({
                             dragover: (event) => {event.preventDefault()}
                         }
                     },//all whiteboard elements
-                    this.wdata.elements.forEach((element, key) => {
+                    
+                    Array.from(this.wdata.elements.entries()).map(([key, element]) => {
                         //postit elements
                         if (element.get('type') == 'postit') {
                             return createElement('div', {
@@ -252,8 +403,8 @@ export default ({
                                 }
                             },[
                                 createElement('textarea', {
-                                    domProps: {value: element.get('title')},
-                                    class: ['titlebox', element.get('id')],
+                                    domProps: {value: element.get('label')},
+                                    class: ['label', element.get('id')],
                                     on: {
                                         click: (event) => {event.stopPropagation()},
                                         input: (event) => {this.sendTextUpdate(event)},
@@ -261,7 +412,7 @@ export default ({
                                 }),
                                 createElement('textarea', {
                                     domProps: {value: element.get('text')},
-                                    class: ['textbox', element.get('id')],
+                                    class: ['text', element.get('id')],
                                     on: {
                                         input: (event) => {this.sendTextUpdate(event)},
                                     },
@@ -270,32 +421,31 @@ export default ({
                         }else {
                             return "this isn't it";
                         };//implement other elements here
-                    }))//end whiteboard createElement
+                    })),//end whiteboard createElement
                 ])//end whiteboardframe createElement
             ]);//end whiteboardcontainer createElement
         } else {
             return createElement('Loading');
         }
         
-    },
+    },*/
     created() {
-        return this.startWhiteboard();
+        this.startWhiteboard();
+        
+        
+    },
+    beforeUpdated() {
+        observer.disconnect();
     },
     updated() {
-        try {
-            var ro = new ResizeObserver(entries => {
-                for (let entry of entries) {
-                    this.sendResizeUpdate(entry.target);
-                }
-            })
-            var elements = document.getElementById('whiteboard').children;
-
-            for (var e of elements) {
-                ro.observe(e);
-            };
-
-            this.resizeObs = ro;
-        } finally {};
+        //try {
+            
+            //var elements = document.getElementById('whiteboard').children;
+            //console.log(elements);
+            //for (var e of elements) {
+               // this.resizeObs.observe(e, {attributeFilter: ['style'], attributeOldValue: true});
+            //};
+        //} finally {};
     }
 })
 </script>
@@ -334,27 +484,31 @@ export default ({
 
     #toolbar {
         /*hover over whiteboard*/
-        display: block;
+        display: inline-block;
         position: sticky;
         z-index: 1;
-
-        top: 100px;
-        left: 50px;
-        width: 50px;
-        border-radius: 12px;
-        background-color: darkgrey;
-        padding: 10px 5px;
-        user-select: none;
+        top: 10%;
+        left:5%;
+        margin: 0;
+        padding: 20px 20px;
+        /*width:50px;*/
+        border-radius: 5px;
+        background: rgb(0, 0, 0); 
+        line-height: 35px;
+        cursor: default;
     }
 
     div.toolselector {
-        background-color: grey;
+        
         height: 35px;
         text-align: center;
+        /*background-color: grey;
         border: 2px black;
-        border-style: solid none;
+        border-style: solid none;*/
+        color: seashell;
         
     }
+
 
     #whiteboard {
             /*removes whitespace*/
@@ -381,7 +535,7 @@ export default ({
         resize: both;
     }
 
-    textarea.titlebox {
+    textarea.label {
         display: inline-block;
         width: 100%;
         height: 25px;
@@ -391,13 +545,26 @@ export default ({
         resize: none;
     }
 
-    textarea.textbox {
+    textarea.text {
         display: inline-block;
         width: 100%;
         height: 80%;
         cursor: default;
         overflow-y: scroll;
         resize: none;
+    }
+
+    #dragbox {
+        display: block;
+    }
+
+    #dragbox.rect {
+        height: 100%;
+        width: 100%;
+        stroke: black;
+        stroke-dasharray: 10;
+        fill-opacity: 0.2;
+        fill: lightyellow;
     }
 
 

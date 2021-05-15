@@ -6,8 +6,18 @@
 			"id": "e001", 
 			"left": "250px", 
 			"top": "300px", 
-			"height":"100px", 
-			"width":"100px",
-			"title":"Test",
+			"height":"200px", 
+			"width":"200px",
+			"label":"Test",
 			"text":"This is test text. Lorem ipsum dolor sit amet"
-			}]}
+			},
+			{
+				"type":"postit",
+				"id": "e002", 
+				"left": "500px", 
+				"top": "300px", 
+				"height":"250px", 
+				"width":"150px",
+				"label":"Another test",
+				"text":"This is test text. Lorem ipsum dolor sit amet"
+				}]}
