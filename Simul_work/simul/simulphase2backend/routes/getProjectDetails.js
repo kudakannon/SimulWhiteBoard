@@ -10,7 +10,7 @@ router.get('/getprojectdetails', function(req, res, next) {
     .join('users', 'collaborators.userID', '=', 'users.userID')    
     .select('users.userID', 'users.userName', 'users.userEmail', 'users.userPhone', 'project.projectID', (req.db.raw(`DATE_FORMAT(project.projectDateCreated,'%d/%m/%Y %h:%i:%s %p') AS dateCreated`)), 'project.projectAddress', 'project.projectStatus', (req.db.raw(`project.userID AS projectOwner`)))
     .where({
-        'project.projectAddress': addr,
+        'project.projectAddress': 46,
 
       })
     .then((rows) => {
@@ -18,8 +18,7 @@ router.get('/getprojectdetails', function(req, res, next) {
       })
       .catch((err) => {
         console.log(err)
-        console.log("this is the error")
-        return res.status(800).send({"Error" : true, "Message" : err})
+        return res.status(400).send({"Error" : true, "Message" : err})
       })
     });
 

@@ -10,7 +10,7 @@
         <b-dropdown-item @click="logout">Logout</b-dropdown-item>
       </b-nav-item-dropdown>
       <template v-else>
-        <b-nav-item to="/register">Register</b-nav-item>
+        <!-- <b-nav-item to="/register">Register</b-nav-item> -->
         <b-nav-item to="/login">Login</b-nav-item>
         <b-nav-item-dropdown lazy>
         <b-dropdown-item to="/about">About</b-dropdown-item>

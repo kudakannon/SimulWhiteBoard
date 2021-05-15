@@ -38,18 +38,18 @@
         <p>
           <nuxt-link to="/forgotpass">Forgot your password?</nuxt-link>
         </p>
-        <p>
+        <!-- <p>
           Don't have an account? <nuxt-link to="/register">Register</nuxt-link>
-        </p>
+        </p> -->
       </div>
       <div v-else class="has-text-centered" style="margin-top: 20px">
         <p>
           <nuxt-link to="/directorforgotpass">Forgot your password?</nuxt-link>
         </p>
-        <p>
+        <!-- <p>
           Don't have a Director Account?
           <nuxt-link to="/directorregister">Register</nuxt-link>
-        </p>
+        </p> -->
       </div>
     </div>
   </div>

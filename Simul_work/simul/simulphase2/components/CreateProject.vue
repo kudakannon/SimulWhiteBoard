@@ -7,20 +7,20 @@
     <template v-else>
       <form method="post" @submit.prevent="createProject">
         <h4 class="headings">Client Information</h4>
-        <div class="field">
-          <label class="label">QUOD Director</label>
+        <!-- <div class="field">
+          <label class="label">QUOD Director: {{loggedInUser.userName}}</label>
           <div class="control">
             <input
               type="text"
               class="input"
               name="director"
-              
+              placeholder="please fill if different"
               v-model="directorName"
-              required
             />
+            
           </div>
           
-        </div>
+        </div> -->
         <div class="field">
           <label class="label">Company Name</label>
           <div class="control">
@@ -28,6 +28,7 @@
               type="text"
               class="input"
               name="companyName"
+              placeholder="Client Company Name"
               v-model="companyName"
               required
             />
@@ -40,7 +41,8 @@
               type="text"
               class="input"
               name="address"
-              v-model="address"
+              placeholder="Project Address"
+              v-model="projectAddress"
               required
             />
           </div>
@@ -170,7 +172,7 @@ export default {
     
     return {
       directorName: "",
-      address: "",
+      projectAddress: "",
       companyName: "",
       completionDate: "",
       error: null,
@@ -187,7 +189,7 @@ export default {
       ],
       stages: [{ name: "PHASE 1: PRE-DESIGN" }],
       numRoles: 0,
-      roles: [{ name: "Role 1", weight: "1", roleNo: "1"}],
+      roles: [{ name: "Role 0", weight: "1", roleNo: "1"}],
       
     };
   },
@@ -200,36 +202,59 @@ export default {
       var randomstring = Math.random()
         .toString(36)
         .slice(-8);
-        
       project = await this.$axios.post("createproject", {
-        projectAddress: this.address,
+        projectAddress: this.projectAddress,
         completionDate: this.completionDate,
         companyName: this.companyName,
-        phone: this.phone,
         email: this.loggedInUser.email,
         password: this.loggedInUser.password,
         userID: this.loggedInUser.userID
       });
+      // ADD STAGES OF DEVELOPMENT
+      for(var i = 0; i<this.stages.length; i++){
+        for(var j = 0; j<this.stages.length; j++){
+          if((this.stages[i].name == this.stages[j].name)&&(i!=j)){
+            this.stages.splice(j,1);
+          }
+        }
+      }
+        try {
+          
+          await this.$axios.post("addStages", {
+            projectID: project.data.projectID,
+            stages: this.stages
+          });
+          this.$router.push("/projects");
+        } catch (e) {
+          this.error = e.response.data.message;
+        }
+    
+    //  ADD ROLES OF DEVELOPMENT
+      for(var i = 0; i<this.roles.length; i++){
+        for(var j = 0; j<this.roles.length; j++){
+          if((this.roles[i].name == this.roles[j].name)&&(i!=j)){
+            this.roles.splice(j,1);
+          }
+
+        }
+      }
+      for(var i = 0; i<this.roles.length;i++){
+            try {
+          await this.$axios.post("addRoles", {
+            projectID: project.data.projectID,
+            roleName: this.roles[i].name,
+            roleWeight: this.roles[i].weight
+          });
+          this.$router.push("/projects");
+        } catch (e) {
+          this.error = e.response.data.message;
+        }
+      }
       
-      //ADD COLLABORATORS FOR PROJECT
-      try {
-        await this.$axios.post("addcollabs", {
-          projectID: project.data.projectID,
-          clientID: project.data.clientToken
-        });
-      } catch (e) {
-        this.error = e.response.data.message;
-      }
-      //ADD STAGES OF DEVELOPMENT
-      try {
-        await this.$axios.post("addStages", {
-          projectID: project.data.projectID,
-          stages: this.stages
-        });
-        this.$router.push("/projects");
-      } catch (e) {
-        this.error = e.response.data.message;
-      }
+        
+      
+      
+      
     },
     addStageFn() {
       this.stages.push({ name: this.placeholders[this.stages.length - 1] });
@@ -249,9 +274,10 @@ export default {
         rn = j
         
       }
-      console.log(rn);
       this.roles.splice(rn, 1);
     }
+
+   
   }
 };
 </script>

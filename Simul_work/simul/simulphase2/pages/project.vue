@@ -130,18 +130,18 @@ export default {
         dateCreated: proj.dateCreated,
         projectOwner: proj.projectOwner
       };
-      this.users = [
-        {
-          name: res.data[0].userName,
-          phone: res.data[0].userPhone,
-          email: res.data[0].userEmail
-        },
-        {
-          name: res.data[1].userName,
-          phone: res.data[1].userPhone,
-          email: res.data[1].userEmail
-        }
-      ];
+      // this.users = [
+      //   {
+      //     name: res.data[0].userName,
+      //     phone: res.data[0].userPhone,
+      //     email: res.data[0].userEmail
+      //   },
+      //   {
+      //     name: res.data[1].userName,
+      //     phone: res.data[1].userPhone,
+      //     email: res.data[1].userEmail
+      //   }
+      // ];
       this.isBusy = false;
     } else {
       this.error = err.response.data.message;

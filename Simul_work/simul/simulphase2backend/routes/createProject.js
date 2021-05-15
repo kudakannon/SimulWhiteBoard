@@ -23,11 +23,10 @@ router.post("/createproject", function (req, res, next) {
   //   .digest("base64");
 
   //check if project aLready exists
-  
   req.db
     .from("project")
     .select("projectID")
-    .where("projectAddress", req.body.address)
+    .where("projectAddress", req.body.projectAddress)
     .then((rows) => {
       if (rows.length == 0) {
             var currentdate = new Date();
@@ -35,7 +34,7 @@ router.post("/createproject", function (req, res, next) {
             req.db
               .from("project")
               .insert({
-                projectAddress: req.body.address, 
+                projectAddress: req.body.projectAddress, 
                 projectDateCreated: date,
                 companyName: req.body.companyName,
                 projectStatus: "In Progress",
@@ -52,9 +51,10 @@ router.post("/createproject", function (req, res, next) {
           });
       } 
       else {
-       console.log("is nothing there");
+       console.log("this project already exists");
       }
     });
+    
 });
 
 module.exports = router;

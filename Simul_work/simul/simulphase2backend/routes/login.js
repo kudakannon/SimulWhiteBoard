@@ -81,7 +81,7 @@ router.post("/login", function (req, res, next) {
       .andWhere({ userPassword: updatedPW })
       .then((rows) => {
         if (rows.length == 0) {
-          return res.status(400).send({ message: "Invalid Login: Incorrect Email or Password." });
+          return res.status(404).send({ message: "Invalid Login: Incorrect Email or Password." });
         } else {
           const userId = rows[0].userID;
           const accessToken = jwt.sign(

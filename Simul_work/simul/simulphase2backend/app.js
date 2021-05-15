@@ -14,8 +14,10 @@ var getProjectsRouter = require('./routes/getProjects');
 var createProjectRouter = require('./routes/createProject');
 var getProjectDetailsRouter = require('./routes/getProjectDetails');
 var updateDetailsRouter = require('./routes/updateDetails');
+var updateRolesRouter = require('./routes/updateRoles');
 var addStagesRouter = require('./routes/addStages');
-var addCollabs = require('./routes/addCollabs');
+var addRolesRouter = require('./routes/addRoles');
+var addColabsRouter = require('./routes/addColabs');
 var completeProjectRouter = require('./routes/completeProject');
 var closeProjectRouter = require('./routes/closeProject');
 var submitCommentRouter = require('./routes/submitComment');
@@ -24,6 +26,8 @@ var resetPasswordRouter = require('./routes/resetPassword');
 var forgotPasswordRouter = require('./routes/forgotPassword');
 var uploadImageRouter = require('./routes/uploadImage');
 var getImagesRouter = require('./routes/getImages');
+var getRolesRouter = require('./routes/getRoles');
+var getColabsRouter = require('./routes/getColabs');
 var getPinterestInfoRouter = require('./routes/getPinterestInfo')
 var addPinterestBoardRouter = require('./routes/addPinterestBoard')
 var getStagesRouter = require('./routes/getStages');
@@ -33,6 +37,7 @@ var directorRegisterRouter = require('./routes/directorSignup');
 var shareProjectRouter = require('./routes/shareProject')
 var directorResetPasswordRouter = require('./routes/directorResetPassword');
 var directorForgotPasswordRouter = require('./routes/directorForgotPassword');
+var removeRolesRouter = require('./routes/removeRoles');
 
 var app = express();
 
@@ -81,12 +86,16 @@ app.use('/projects', getProjectsRouter);
 app.use('/createproject', createProjectRouter);
 app.use('/getprojectdetails', getProjectDetailsRouter);
 app.use('/updatedetails', updateDetailsRouter);
+app.use('/updateroles', updateRolesRouter);
 app.use('/addstages', addStagesRouter);
-app.use('/addcollabs', addCollabs);
+app.use('/addRoles', addRolesRouter);
+app.use('/addcolabs', addColabsRouter);
 app.use('/completeproject', completeProjectRouter);
 app.use('/closeproject', closeProjectRouter);
 app.use('/submitcomment', submitCommentRouter)
 app.use('/getstages', getStagesRouter)
+app.use('/getsroles', getRolesRouter)
+app.use('/getscolabs', getColabsRouter)
 app.use('/getstagecomments', getStageCommentsRouter)
 app.use('/resetpassword', resetPasswordRouter)
 app.use('/forgotpassword', forgotPasswordRouter)
@@ -100,6 +109,7 @@ app.use('/directorregister', directorRegisterRouter)
 app.use('/shareproject', shareProjectRouter)
 app.use('/directorresetpassword', directorResetPasswordRouter)
 app.use('/directorforgotpassword', directorForgotPasswordRouter)
+app.use('/removesroles', getRolesRouter)
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

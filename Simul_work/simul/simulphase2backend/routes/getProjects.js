@@ -18,7 +18,6 @@ router.get("/projects", function (req, res, next) {
   if(decoded.userType == "director") {
     req.db
     .from("project")
-    .join("users", "project.userID", "=", "users.userID")
     .join("directors", "project.userID", "=", "directors.directorID")
     .select(
       req.db.raw(
@@ -26,11 +25,12 @@ router.get("/projects", function (req, res, next) {
       ),
       'directors.directorName AS createdBy',
       "projectAddress",
+      "companyName",
       "projectStatus",
-      "project.projectID",
+ 
     )
-    .where("directorUsers.directorID", decoded.token)
-    .orderBy('project.projectID', 'desc')
+    .where("directors.directorID", decoded.token)
+    .orderBy('project.projectID', 'asc')
     .then((rows) => {
       var completedProjects = []
       var cancelledProjects = []
