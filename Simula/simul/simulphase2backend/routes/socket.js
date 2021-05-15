@@ -30,6 +30,7 @@ class Whiteboard {
         this.recentchange = false;
         this.savetimer = setInterval(() => {
             if (this.recentchange) {
+                console.log("saved " + this.boardname);
                 fsp.writeFile("./whiteboards/" + boardname + "/board.json", JSON.stringify(this.data));
             } else {
                 this.deletetimer = setTimeout(()=>{
@@ -45,7 +46,6 @@ class Whiteboard {
     };
 
     get json() {
-        console.log('4');
         return JSON.stringify(this.data);
     }
 
@@ -100,9 +100,12 @@ class Whiteboard {
         if (targetnotfound) {
             return false;
         }
+        
+        var id = targets.splice(i, 1)[0];
 
         //store target element index, while also removing element ID from array of targets
-        var targindex = this.elemmap.get(targets.slice(i, 1)[0]);
+        var targindex = this.elemmap.get(id);
+
 
         //use remaining target array to put text change in correct object parameter
         try {
@@ -212,7 +215,6 @@ async function createWhiteboard(name) {
     
     try { 
         boardjson = await fsp.readFile("./whiteboards/" + name + "/board.json");
-        console.log('3');
     } catch {
         //save defaultboard to file under boardname directory
         await fsp.mkdir("./whiteboards/" + name);
@@ -270,11 +272,9 @@ module.exports = function (io) {
                     socket.emit('updateFailed');
                 };
             });
-            console.log('6');
             socket.emit("loginSuccess", socket.id, whiteboards.get(projectID).json);
 
         } catch {
-            console.log('5');
             socket.emit("loginFailure");
             socket.disconnect(true);
             return;
