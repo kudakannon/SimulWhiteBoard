@@ -356,12 +356,6 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "directorName":{
-                    "type": "string",
-                    "example": "Ben Smith",
-                    "description":"Directors Name",
-                    "required":true
-                  },
                   "projectAddress":{
                     "type": "string",
                     "example": "9 lange place",
@@ -374,7 +368,7 @@
                     "description":"Client company name",
                     "required":true
                   },
-                  "projectedCompletionDate": {
+                  "completionDate": {
                     "type": "string",
                     "example": "2020/04/12",
                     "description":"Projected Completion Date for Project",
@@ -427,7 +421,7 @@
           }
         }
     },
-    "/users/me":{
+    "/addcolabs":{
       "get":{
         "tags":["Authentication"],
         "description":"Get user data",
@@ -464,11 +458,19 @@
                               "type": "string",
                               "example": "Steve"
                             },
-                            "userPhone": {
+                            "phone": {
                               "type": "string",
                               "example": "0412444000"
                             },
                             "userEmail": {
+                              "type": "string",
+                              "example": "steve@gmail.com"
+                            },
+                            "projectID": {
+                              "type": "string",
+                              "example": "steve@gmail.com"
+                            },
+                            "userRole": {
                               "type": "string",
                               "example": "steve@gmail.com"
                             }
@@ -528,7 +530,7 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "directorID":{
+                      "userID":{
                         "type": "number",
                         "example": 1,
                         "description":"User ID"
@@ -555,7 +557,7 @@
                       },
                       "projectAddress":{
                         "type": "string",
-                        "example": "6 ProjectCreated Avenue",
+                        "example": "9 lange place",
                         "description":"Address of Project"
                       },
                       "dateCreated": {
@@ -629,6 +631,106 @@
                         "type": "string",
                         "example": "2020/04/30",
                         "description":"The projected date the stage will be completed"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/addroles": {
+        "post":{
+          "tags":["Project Stages"],
+          "description":"This is where users can add more stages to the project",
+          "operationId":"addstage",
+          "produces":["application/json"],
+          "requestBody":{
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "projectID":{
+                      "type": "number",
+                      "example": "1",
+                      "description":"The ID of the project",
+                      "required":true
+                    },
+                    "roleName":{
+                      "type": "string",
+                      "example": "Role 1",
+                      "description":"The ID of the projectName of Stage",
+                      "required":true
+                    },
+                    "roleWeight":{
+                      "type": "number",
+                      "example": 1,
+                      "description":"Weight of the role",
+                      "required":true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses":{
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "stageName":{
+                        "type": "string",
+                        "example": "Role has been added successfully",
+                        "description":"Added Stage"
+                      }
+                      }
+                    }
+                  }
+                }
+              },
+              "400": {
+                "description": "Bad Request",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "Error. Name is required"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+      },
+      "/getroles":{
+        "get":{
+          "tags":["Project Stages"],
+          "description":"Uses the search location in the window as a parameter to extract the stages of the project",
+          "operationId":"getStages",
+          "produces":["application/json"],
+          "responses":{
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "projectID":{
+                        "type": "number",
+                        "example": 1,
+                        "description":"Project ID"
                       }
                     }
                   }
