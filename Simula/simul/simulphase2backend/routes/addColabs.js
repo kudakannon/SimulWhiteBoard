@@ -1,5 +1,6 @@
 var router = require('./login');
 var jwt = require('jsonwebtoken');
+var crypto = require("crypto");
 var password;
 
 
@@ -13,12 +14,13 @@ router.post('/addcolabs', function(req, res, next) {
   // catch(err) {
   //   return res.status(400).send({"message": JSON.stringify(err)});
   // }
+  password = Math.random().toString(36).slice(-8);
   var updatedPW = crypto
           .createHash("sha256")
-          .update(req.body.email)
-          // .update(Math.random().toString(36).slice(-8))
+          .update(req.body.userName + req.body.userEmail)
+          // .update(password)
           .digest("base64");
-          
+          var responseArr = [];        
   req.db.from('users')
   .select('userID')
   .where('userEmail', req.body.userEmail)
@@ -87,21 +89,36 @@ router.post('/addcolabs', function(req, res, next) {
             return res.status(400).json({message: "This email does not exist."});
           }
         });
-        ctID.push(moreRows[0]);
+        
+        req.db.from('collaborators')
+      .insert({
 
+          projectID: req.body.projectID,
+          userID: rows[0].userID,
+          userRole: req.body.userRole,
+
+      })
+      .then((evenmorerows) => {
+        
+        responseArr.push(evenmorerows);
+      })
+      .catch((err) => {
+      
+        console.log(err);
+        return res.status(400).send({ message: err });
+      });
+      ctID.push(moreRows[0]);
       })
       .catch((err) => {
         return res.status(400).json({ message: err });
       });
     }
-    else{
-      console.log("there")
-      var userid= req.db.from('users').select('userID').where('userEmail', req.body.userEmail);
+    
       req.db.from('collaborators')
       .insert({
 
-          projectID: req.body.userRole,
-          userID: userid.userID,
+          projectID: req.body.projectID,
+          userID: rows[0].userID,
           userRole: req.body.userRole,
 
       })
@@ -114,7 +131,7 @@ router.post('/addcolabs', function(req, res, next) {
         console.log(err);
         return res.status(400).send({ message: err });
       });
-    }
+    
   })
     
 

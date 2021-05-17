@@ -5,13 +5,14 @@ router.get('/getcolabs', function(req, res, next) {
     //SEARCHING THE DATABASE
     var addr = req.body.projectID;
      //addr = addr.replace(/-/g, ' ');
-
     req.db.from('collaborators')
-    .join('projectRoles', 'collaborators.projectID', '=', 'projectRoles.projectID','AND','collaborators.userRole','=','projectRoles.userRole')
+    .join('projectRoles','collaborators.userRole','=','projectRoles.userRole','AND', 'collaborators.projectID', '=', 'projectRoles.projectID' )
     .join('users', 'collaborators.userID', '=', 'users.userID')
-    .select('projectRoles.projectID', 'projectRoles.userRole', 'projectRoles.roleWeight', 'users.userEmail', 'users.userName')
+    .select('projectRoles.userRole', 'projectRoles.roleWeight', 'users.userEmail')
     .where({
-        'collaborators.projectID': 46,
+        'collaborators.projectID': 1,
+        
+        
       })
     .then((rows) => {
       
