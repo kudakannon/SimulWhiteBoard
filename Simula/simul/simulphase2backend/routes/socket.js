@@ -32,6 +32,7 @@ class Whiteboard {
             if (this.recentchange) {
                 console.log("saved " + this.boardname);
                 fsp.writeFile("./whiteboards/" + boardname + "/board.json", JSON.stringify(this.data));
+                this.recentchange = false;
             } else {
                 this.deletetimer = setTimeout(()=>{
                     whiteboards.delete(this.boardname);
@@ -49,10 +50,21 @@ class Whiteboard {
         return JSON.stringify(this.data);
     }
 
+    changedFlag() {
+        //signal whiteboard has been updated
+        this.recentchange = true;
+        try {
+            clearTimeout(this.deletetimer);
+        } catch {
+            //if timer is not set, do nothing
+        }
+    }
+
     addElement(element) {
         if (!(this.elemmap.has(element.id))) {
             var length = this.data.elements.push(element);
             this.elemmap.set(element.id, length - 1);
+            this.changedFlag();
             return true;
         }
         return false;
@@ -68,6 +80,7 @@ class Whiteboard {
             for (var i = pos; i < this.data.elements.length; i++) {
                 this.elemmap.set(this.data.elements[i].id, i);
             }
+            this.changedFlag();
             return true;
         }
         return false;
@@ -77,13 +90,7 @@ class Whiteboard {
 
 
     updateText(target, text) {
-        //signal whiteboard has been updated
-        this.recentchange = true;
-        try {
-            clearTimeout(this.deletetimer);
-        } catch {
-            //if timer is not set, do nothing
-        }
+        this.changedFlag();
 
         var targetnotfound = true;
         var i = 0;
@@ -119,13 +126,7 @@ class Whiteboard {
     };
 
     updateSize(target, dimens) {
-        //signal whiteboard has been updated
-        this.recentchange = true;
-        try {
-            clearTimeout(this.deletetimer);
-        } catch {
-            //if timer is not set, do nothing
-        }
+        this.changedFlag();
 
         var targetnotfound = true;
         var i = 0;
@@ -154,13 +155,7 @@ class Whiteboard {
     };
 
     updateLocation(target, coords) {
-        //signal whiteboard has been updated
-        this.recentchange = true;
-        try {
-            clearTimeout(this.deletetimer);
-        } catch {
-            //if timer is not set, do nothing
-        }
+        this.changedFlag();
 
         var targetnotfound = true;
         var i = 0;
@@ -271,6 +266,21 @@ module.exports = function (io) {
                     console.log(err);
                     socket.emit('updateFailed');
                 };
+            });
+
+            socket.on('create', (object)=> {
+                try {
+                    var projectID = socket.handshake.query.projectID;
+                    if (!(whiteboards.has(projectID))) {
+                        var w = createWhiteboard(projectID);
+                    }
+
+                    whiteboards.get(projectID).addElement(object);
+
+                    socket.to(projectID).emit('create', object);
+                } catch {
+                    console.log('failure to create');
+                }
             });
             socket.emit("loginSuccess", socket.id, whiteboards.get(projectID).json);
 

@@ -2,16 +2,16 @@
 <template>
 <span>
     <div v-if="(connected && loaded)" id="wframecontainer">
-        <div id="whiteboardframe" v-on:mousedown="moveWhiteboard">
+        <div id="whiteboardframe" v-on:mousedown="whiteboardMouseDown">
             <div id="toolbar" v-on:mousedown.stop>
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
                 <div v-for="{name, icon} in tools" :key="name" class="toolselector" v-on:click.stop="useTool(name)">
                     <i class="fa" :class="icon" aria-hidden="true" ></i>
                 </div>
             </div>
-            <div id="whiteboard" :style="{height: wdata.height, width: wdata.width}" 
+            <div id="whiteboard" :style="{height: wdata.height, width: wdata.width}" :key="forkey" 
                 v-on:drop="dropElement" v-on:dragover.prevent>
-                <template v-for="[key ,element] of wdata.elements">
+                <template v-for="[key ,element] of wdata.elements" >
                     <template v-if="element.get('type')=='postit'">
                         <div :key="key" :id="element.get('id')" 
                             :class="element.get('type') + ' ' + element.get('id')"
@@ -84,6 +84,9 @@ export default ({
                 {name:"thumbdown", icon: "fa-thumbs-down"}
             ],
 
+            defaultstickylabel: "Title",
+            defaultstickytext: "Text",
+            forkey: 0,
             resizeObs: null,
         };
     },
@@ -134,6 +137,12 @@ export default ({
 
             this.sock.on("updateFail", () => {
                 this.message = "update failed";
+            });
+
+            this.sock.on('create', (object) => {
+                this.wdata.elements.set(object.id, new Map(Object.entries(object)));
+                this.forkey = this.forkey + 1;
+                this.$forceUpdate();
             });
         },
 
@@ -265,10 +274,10 @@ export default ({
             this.sock.emit("update", target, "resize", data)
         },
         whiteboardMouseDown(event) {
-            if (tool === "mouse") {
+            if (this.tool === "mouse") {
                 this.moveWhiteboard(event);
-            } else if (tool === "sticky") {
-                
+            } else if (this.tool === "sticky") {
+                this.newStickynote(event);
             }
         },
         moveWhiteboard(event) {
@@ -313,14 +322,60 @@ export default ({
 
         newStickynote(event) {
             var wframe = document.getElementById('whiteboardframe');
-            var box = document.createElement(svg);
-            box.style.top = event.clientY;
-            box.style.left = event.clientX;
-            box.style.width = 0;
-            box.style.height = 0;
+            var box = document.createElement('div');
+            box.id = 'dragbox';
+            var headerheight = document.querySelector(".navbar-dark").offsetHeight;
+            box.style.top = (event.clientY + wframe.scrollTop - headerheight) + 'px';
+            box.style.left = (event.clientX + wframe.scrollLeft) + 'px';
+            box.style.width = '0px';
+            box.style.height = '0px';
 
-            document.addEventListener('mousemove', this.dragWhiteboard);
-            document.addEventListener('mouseup', this.releaseWhiteboard);
+
+            document.getElementById('whiteboard').appendChild(box);
+
+
+            this.pos.top = event.clientY;
+            this.pos.left = event.clientX;
+
+            document.addEventListener('mousemove', this.dragSticky);
+            document.addEventListener('mouseup', this.releaseSticky);
+        },
+
+        dragSticky(event) {
+            var box = document.getElementById('dragbox');
+            box.style.width = (event.clientX - this.pos.left) + 'px';
+            box.style.height = (event.clientY - this.pos.top) + 'px';
+        },
+
+        releaseSticky(event) {
+            var box = document.getElementById('dragbox');
+            box.style.width = (event.clientX - this.pos.left) + 'px';
+            box.style.height = (event.clientY - this.pos.top) + 'px';
+
+            var id = this.sessionID + box.style.top + 'z' + Math.random();
+            var sticky = {
+                type: "postit",
+                id: id,
+                left: box.style.left,
+                top: box.style.top,
+                height: box.style.height,
+                width: box.style.width,
+                label: this.defaultstickylabel,
+                text: this.defaultstickytext,
+            };
+
+            this.wdata.elements.set(id, new Map(Object.entries(sticky)));
+            console.log(this.wdata.elements);
+            this.forkey = this.forkey + 1;
+            this.$forceUpdate;
+            this.sock.emit('create', sticky);
+
+
+            box.remove();
+            this.useTool('mouse');
+            document.removeEventListener('mousemove', this.dragSticky);
+            document.removeEventListener('mouseup', this.releaseSticky);
+
         },
     
         dragElement(event) {
@@ -556,15 +611,10 @@ export default ({
 
     #dragbox {
         display: block;
-    }
-
-    #dragbox.rect {
-        height: 100%;
-        width: 100%;
-        stroke: black;
-        stroke-dasharray: 10;
+        position: absolute;
         fill-opacity: 0.2;
         fill: lightyellow;
+        border: 1px dotted black;
     }
 
 

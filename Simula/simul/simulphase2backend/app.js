@@ -41,7 +41,8 @@ var removeRolesRouter = require('./routes/removeRoles');
 
 var app = express();
 
-
+var sockio = require('socket.io')(10011, {cors: { origin: '*',}});
+var socket = require('./routes/socket.js')(sockio);
 
 const options = require('./knexfile.js');
 const knex = require('knex')(options);
