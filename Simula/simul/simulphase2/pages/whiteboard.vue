@@ -16,7 +16,7 @@
                         <div :key="key" :id="element.get('id')" 
                             :class="element.get('type') + ' ' + element.get('id')"
                             v-on:mousedown.stop v-on:dragstart="dragElement" draggable 
-                            v-observer:subtree.attributes="resizeHandler"
+                            v-observer:subtree.attributes="resizeHandler" v-on:click="deleteElement"
                             :style="{height: element.get('height'), width: element.get('width'), 
                             top: element.get('top'), left: element.get('left')}">
 
@@ -74,14 +74,16 @@ export default ({
             //all tools in toolbar: {name: "", imgurl: ""}
             tools: [
                 {name:"mouse", icon: "fa-mouse-pointer"}, 
-                {name:"edit", icon: "fa-edit"}, 
+                //{name:"edit", icon: "fa-edit"}, 
                 {name:"font", icon: "fa-font"},
                 {name:"sticky", icon: "fa-sticky-note"},
                 {name:"image", icon: "fa-image"},
-                {name:"comment", icon: "fa-comment"},
-                {name:"save", icon: "fa-save"},
+                //{name:"comment", icon: "fa-comment"},
+                {name:"delete", icon: "fa-trash"},
                 {name:"thumbup", icon: "fa-thumbs-up"},
-                {name:"thumbdown", icon: "fa-thumbs-down"}
+                {name:"thumbdown", icon: "fa-thumbs-down"},
+                {name:"save", icon: "fa-save"},
+                {name:"resize", icon: "fa-arrows-alt"}
             ],
 
             defaultstickylabel: "Title",
@@ -144,6 +146,12 @@ export default ({
                 this.forkey = this.forkey + 1;
                 this.$forceUpdate();
             });
+
+            this.sock.on('delete', (elemID) => {
+                this.wdata.elements.delete(elemID);
+                this.forkey = this.forkey + 1;
+                this.$forceUpdate();
+            })
         },
 
         buildWhiteboard(wjson) {
@@ -161,12 +169,23 @@ export default ({
         },
         /*tool handler*/
         useTool(toolname) {
+            if (this.tool === 'delete' && toolname !== 'delete') {
+                for (var elem of document.getElementById('whiteboard').children) {
+                    elem.style.removeProperty('cursor');
+                };
+            };
+
             this.tool = toolname;
 
             if (toolname === "mouse") {
                 document.getElementById('whiteboardframe').style.cursor = "grab";
-            } else {
+            } else if (toolname === "sticky" || toolname === "image") {
                 document.getElementById('whiteboardframe').style.cursor = "crosshair";
+            } else if (toolname === "delete") {
+                document.getElementById('whiteboardframe').style.cursor = "default";
+                for (var elem of document.getElementById('whiteboard').children) {
+                    elem.style.cursor = "crosshair";
+                }
             }
         },
         getClassQuery(element) {
@@ -402,6 +421,23 @@ export default ({
 
             this.sendMoveUpdate(dropelem);
         },
+
+        deleteElement(event) {
+
+            //if delete tool isn't selected, do nothing
+            if (this.tool !== "delete") {
+                return;
+            };
+
+            this.wdata.elements.delete(event.target.id);
+            this.useTool('mouse');
+            this.sock.emit('delete', event.target.id);
+
+            this.forkey = this.forkey + 1;
+            this.$forceUpdate();
+
+
+        }
         
         
         

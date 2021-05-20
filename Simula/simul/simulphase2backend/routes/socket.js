@@ -282,6 +282,21 @@ module.exports = function (io) {
                     console.log('failure to create');
                 }
             });
+
+            socket.on('delete', (elemID) => {
+                try {
+                    var projectID = socket.handshake.query.projectID;
+                    if (!(whiteboards.has(projectID))) {
+                        var w = createWhiteboard(projectID);
+                    }
+
+                    whiteboards.get(projectID).deleteElement(elemID);
+
+                    socket.to(projectID).emit('delete', elemID);
+                } catch {
+                    console.log('failure to delete');
+                }
+            })
             socket.emit("loginSuccess", socket.id, whiteboards.get(projectID).json);
 
         } catch {
