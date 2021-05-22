@@ -15,6 +15,9 @@ class Whiteboard {
         //loading whiteboard json
         this.boardname = boardname;
         this.data = JSON.parse(boardjson);
+
+        //map to store loaded images
+        this.imgmap = new Map();
         
         
 
@@ -182,6 +185,14 @@ class Whiteboard {
         return true;
     };
 
+    saveImage(file) {
+
+    };
+
+    loadImage(filenme) {
+
+    };
+
 
 };
 
@@ -296,7 +307,19 @@ module.exports = function (io) {
                 } catch {
                     console.log('failure to delete');
                 }
-            })
+            });
+
+            socket.on('imgupload', (object, file) => {
+
+            });
+
+            socket.on('imgupdate', (elemID, file) => {
+
+            });
+
+            socket.on('imgdownload', (filenme) => {
+
+            });
             socket.emit("loginSuccess", socket.id, whiteboards.get(projectID).json);
 
         } catch {

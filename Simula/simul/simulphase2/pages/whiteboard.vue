@@ -8,14 +8,19 @@
                 <div v-for="{name, icon} in tools" :key="name" class="toolselector" v-on:click.stop="useTool(name)">
                     <i class="fa" :class="icon" aria-hidden="true" ></i>
                 </div>
+                <NuxtLink to="/viewproject">
+                    <div class="toolselector" v-if="loggedInUser.userType === 'director'">
+                        <i class="fa fa-cogs" aria-hidden="true"></i>
+                    </div>
+                </NuxtLink>
             </div>
             <div id="whiteboard" :style="{height: wdata.height, width: wdata.width}" :key="forkey" 
                 v-on:drop="dropElement" v-on:dragover.prevent>
                 <template v-for="[key ,element] of wdata.elements" >
-                    <template v-if="element.get('type')=='postit'">
+                    <template v-if="element.get('type') === 'postit'">
                         <div :key="key" :id="element.get('id')" 
                             :class="element.get('type') + ' ' + element.get('id')"
-                            v-on:mousedown.stop v-on:dragstart="dragElement" draggable 
+                            v-on:mousedown.stop v-on:dragstart="dragElement" draggable="true" 
                             v-observer:subtree.attributes="resizeHandler" v-on:click="deleteElement"
                             :style="{height: element.get('height'), width: element.get('width'), 
                             top: element.get('top'), left: element.get('left')}">
@@ -25,6 +30,32 @@
                             <textarea class="text" :class="element.get('id')" :value="element.get('text')" 
                                 v-on:click.stop v-on:input="sendTextUpdate" />
                         </div>
+                    </template>
+                    <template v-else-if="element.get('type') === 'img'">
+                        <div :key="element.get('file')" :id="element.get('id')" 
+                        :class="element.get('type') + ' ' + element.get('id')"
+                        v-on:mousedown.stop v-on:dragstart="dragElement" draggable="true"
+                        v-observer:subtree.attributes="resizeHandler" v-on:click="deleteElement"
+                        :style="{height: element.get('height'), width: element.get('width'),
+                        top: element.get('top'), left: element.get('left')}">
+                            <div class="noimagetop"><div class="noimagebottom">
+                                <i class="fa fa-picture-o fa-4x" aria-hidden="true"></i>
+                            </div></div>
+                            <img :class="'imgbase ' + element.get('id')" :src="element.get('imgdata')"
+                            draggable="false">
+                            <div v-if="element.get('file') === ''"
+                            :class="'imgpreupload'">
+                                <input type="file" :class="element.get('id')">
+                                <button :class="element.get('id')" v-on:click.stop="uploadImage">Upload</button>
+                            </div>
+                            <div v-else class="imghoverbox">
+                                <div class="imghover">Change Image</div>
+                                <div class="imgupload">
+                                    <input type="file" :class="element.get('id')">
+                                    <button :class="element.get('id')" v-on:click.stop="changeImage">Upload</button>
+                                </div>
+                            </div>
+                        </div> 
                     </template>
                     <template v-else>
                         <div :key="key">
@@ -292,11 +323,51 @@ export default ({
             this.updateSize(target, data);
             this.sock.emit("update", target, "resize", data)
         },
+        uploadImage(event) {
+            var id = event.target.className;
+            var file = document.querySelector('input.' + id).files[0];
+
+            this.wdata.elements.get(id).set('file', file.name);
+            var img = {
+                type: "img",
+                id: id,
+                left: this.wdata.elements.get(id).get('left'),
+                top: this.wdata.elements.get(id).get('top'),
+                height: this.wdata.elements.get(id).get('height'),
+                width: this.wdata.elements.get(id).get('width'),
+                file: file.name,
+                imgdata: "",
+            };
+            this.renderImage(id, file);
+            this.sock.emit('imgupload', img, file);
+        },
+        changeImage(event) {
+            var id = event.target.className;
+            var file = document.querySelector('input.' + id).files[0];
+
+            this.wdata.elements.get(id).set('file', file.name);
+            this.renderImage(id, file);
+            this.sock.emit('imgupdate', id, file);
+        },
+        renderImage(elemID, file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.wdata.elements.get(elemID).set('imgdata', e.target.result);
+                this.forkey = this.forkey + 1;
+                this.$forceUpdate();
+            };
+            reader.onerror = (e) => {
+                console.log(e);
+            };
+            reader.readAsDataURL(file);
+        },
         whiteboardMouseDown(event) {
             if (this.tool === "mouse") {
                 this.moveWhiteboard(event);
             } else if (this.tool === "sticky") {
-                this.newStickynote(event);
+                this.newDragBox(event, this.newSticky);
+            } else if (this.tool === "image") {
+                this.newDragBox(event, this.newImg);
             }
         },
         moveWhiteboard(event) {
@@ -339,7 +410,7 @@ export default ({
 
         },
 
-        newStickynote(event) {
+        newDragBox(event, newelemfunct) {
             var wframe = document.getElementById('whiteboardframe');
             var box = document.createElement('div');
             box.id = 'dragbox';
@@ -356,17 +427,17 @@ export default ({
             this.pos.top = event.clientY;
             this.pos.left = event.clientX;
 
-            document.addEventListener('mousemove', this.dragSticky);
-            document.addEventListener('mouseup', this.releaseSticky);
+            document.addEventListener('mousemove', this.dragDragBox);
+            document.addEventListener('mouseup', newelemfunct);
         },
 
-        dragSticky(event) {
+        dragDragBox(event) {
             var box = document.getElementById('dragbox');
             box.style.width = (event.clientX - this.pos.left) + 'px';
             box.style.height = (event.clientY - this.pos.top) + 'px';
         },
 
-        releaseSticky(event) {
+        newSticky(event) {
             var box = document.getElementById('dragbox');
             box.style.width = (event.clientX - this.pos.left) + 'px';
             box.style.height = (event.clientY - this.pos.top) + 'px';
@@ -392,13 +463,43 @@ export default ({
 
             box.remove();
             this.useTool('mouse');
-            document.removeEventListener('mousemove', this.dragSticky);
-            document.removeEventListener('mouseup', this.releaseSticky);
+            document.removeEventListener('mousemove', this.dragDragBox);
+            document.removeEventListener('mouseup', this.newSticky);
+
+        },
+
+        newImg(event) {
+            var box = document.getElementById('dragbox');
+            box.style.width = (event.clientX - this.pos.left) + 'px';
+            box.style.height = (event.clientY - this.pos.top) + 'px';
+
+            var id = this.sessionID + box.style.left + 'p' + Math.random();
+            var img = {
+                type: "img",
+                id: id,
+                left: box.style.left,
+                top: box.style.top,
+                height: box.style.height,
+                width: box.style.width,
+                file: "",
+                imgdata: "",
+            };
+
+            this.wdata.elements.set(id, new Map(Object.entries(img)));
+            console.log(this.wdata.elements);
+            this.forkey = this.forkey + 1;
+            this.$forceUpdate;
+
+            box.remove();
+            this.useTool('mouse');
+            document.removeEventListener('mousemove', this.dragDragBox);
+            document.removeEventListener('mouseup', this.newImg);
 
         },
     
         dragElement(event) {
             event.dataTransfer.setData('text', event.target.id);
+            console.log(event.target);
             var sty = getComputedStyle(event.target);
     
             this.pos = {
@@ -577,7 +678,7 @@ export default ({
         /*hover over whiteboard*/
         display: inline-block;
         position: sticky;
-        z-index: 1;
+        z-index: 3;
         top: 10%;
         left:5%;
         margin: 0;
@@ -619,6 +720,7 @@ export default ({
     /*for all postits*/
     div.postit {
         position: absolute;
+        z-index: 2;
         background-color: lightyellow;
         border-color: black;
         overflow: hidden;
@@ -653,12 +755,95 @@ export default ({
         border: 1px dotted black;
     }
 
+    .img {
+        position: absolute;
+        z-index: 1;
+        background-color: lightyellow;
+        border-color: black;
+        overflow: hidden;
+        resize: both;
+    }
 
-    /*test data to be generated programatically*/
-    /*#e001 {
-        top: 300px;
-        left: 250px;
-        height: 100px;
-        width: 100px;
-    }*/
+    .imgpreupload {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        min-height: 2em;
+        padding-top: 2px;
+        background-color: black;
+        border: 2px white;
+        color: seashell;
+    }
+
+    .noimagetop {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 50%;
+        width: 50%;
+    }
+
+    .noimagebottom {
+        display: block;
+        position: absolute;
+        right: -2em;
+        bottom: -3em;
+    }
+
+    .imgbase {
+        display: block;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        top: 0;
+        left: 0;
+    }
+
+    .imghoverbox {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+
+    .imghover {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 110px;
+        height: 2em;
+        background-color: black;
+        color: seashell;
+        border: 2px white;
+    }
+
+    .imgupload {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: none;
+        width: 100%;
+        min-width: 200px;
+        height: 2em;
+        background-color: black;
+        color: seashell;
+        border: 2px white;
+    }
+
+    .imgupload button {
+        color: black;
+    }
+
+    .img:hover .imghoverbox {
+        display: contents;
+    }
+
+    .imghoverbox:hover .imgupload {
+        display: block;
+    }
+
+
 </style>
