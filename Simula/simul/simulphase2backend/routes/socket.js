@@ -51,10 +51,12 @@ class Whiteboard {
         return this.data.elements;
     };
 
+    //used to send whitebboards to user when they first load
     get json() {
         return JSON.stringify(this.data);
     }
 
+    //let object know to save changes
     changedFlag() {
         //signal whiteboard has been updated
         this.recentchange = true;
@@ -93,7 +95,7 @@ class Whiteboard {
 
     }
 
-
+    //used pureply for post-its, for now
     updateText(target, text) {
         this.changedFlag();
 
@@ -130,6 +132,8 @@ class Whiteboard {
 
     };
 
+    //handles resizes
+    //returns true if successful, otherwise false
     updateSize(target, dimens) {
         this.changedFlag();
 
@@ -159,6 +163,10 @@ class Whiteboard {
 
     };
 
+    //handles locations
+    //target is the classes of the element that was moved
+    //coords is an object with top and left values
+    //returns true if successful, otherwise false
     updateLocation(target, coords) {
         this.changedFlag();
 
@@ -187,17 +195,20 @@ class Whiteboard {
         return true;
     };
 
+    //saves an image without editing the whiteboard data, paired with adding an image element
     async saveImage(filenme, stream) {
         stream.pipe(fs.createWriteStream("./whiteboards/" + this.boardname + "/" + filenme));
         console.log('saved');
     };
 
+    //changes an image for an element and updates data
     changeImage (elemID, filenme, stream) {
         this.changedFlag();
         this.data.elements[this.elemmap.get(elemID)].file = filenme;
         stream.pipe(fs.createWriteStream("./whiteboards/" + this.boardname + "/" + filenme));
     }
 
+    //pipes a stream to be passed to the user
     async loadImage(filenme, stream) {
         fs.createReadStream("./whiteboards/" + this.boardname + "/" + filenme).pipe(stream);
     };
@@ -205,6 +216,7 @@ class Whiteboard {
 
 };
 
+//checks if user has access to the whiteboard they are trying to access
 async function checkAccess(projectID, userID, userType, userRole) {//userRole is not implemented at ttime of writing
     var permitted = false;
     //if the use is a director, check if they are the director of the project
@@ -225,6 +237,7 @@ async function checkAccess(projectID, userID, userType, userRole) {//userRole is
     return permitted;
 };
 
+//creates a new whiteboard object
 async function createWhiteboard(name) {
     var boardjson;
     
@@ -258,8 +271,11 @@ module.exports = function (io) {
             if (!(whiteboards.has(projectID))) {
                 var w = createWhiteboard(projectID);
             }
-            socket.join(projectID);
-
+            socket.join(projectID); //joining a room allows packets to be broadcast to these connections
+            //------------------------------
+            //Socket Events
+            //------------------------------
+            //updates a part of a whiteboard element
             socket.on("update", (target, type, data) => {
                 try {
                     var projectID = socket.handshake.query.projectID;
@@ -288,6 +304,7 @@ module.exports = function (io) {
                 };
             });
 
+            //creates a new whitboard element and sends to all others
             socket.on('create', (object)=> {
                 try {
                     var projectID = socket.handshake.query.projectID;
@@ -303,6 +320,7 @@ module.exports = function (io) {
                 }
             });
 
+            //deletes a whiteboard element and updates others using whiteboard
             socket.on('delete', (elemID) => {
                 try {
                     var projectID = socket.handshake.query.projectID;
@@ -318,6 +336,7 @@ module.exports = function (io) {
                 }
             });
 
+            //uses socket.io-stream to receive new image and image element
             ss(socket).on('imgupload', (imgobj, stream) => {
                 try {
                     var projectID = socket.handshake.query.projectID;
@@ -334,6 +353,7 @@ module.exports = function (io) {
                 
             });
 
+            //receives update to img element
             ss(socket).on('imgupdate', (elemID, filenme, stream) => {
                 try {
                     var projectID = socket.handshake.query.projectID;
@@ -349,6 +369,7 @@ module.exports = function (io) {
                 
             });
 
+            //receives requests to download an image over the socket, then sends a stream to the requester
             socket.on('imgdownload', (elemID, filenme) => {
                 var projectID = socket.handshake.query.projectID;
 

@@ -1,13 +1,15 @@
 
 <template>
 <span>
-    <div v-if="(connected && loaded)" id="wframecontainer">
+    <div v-if="(connected && loaded)" id="wframecontainer"> 
         <div id="whiteboardframe" v-on:mousedown="whiteboardMouseDown">
             <div id="toolbar" v-on:mousedown.stop>
+                <!-- this stylesheet is here so the toolbar can access the icons it holds-->
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
                 <div v-for="{name, icon} in tools" :key="name" class="toolselector" v-on:click.stop="useTool(name)">
                     <i class="fa" :class="icon" aria-hidden="true" ></i>
                 </div>
+                <!-- Links directors to project settings-->
                 <NuxtLink to="/viewproject">
                     <div class="toolselector" v-if="loggedInUser.userType === 'director'">
                         <i class="fa fa-cogs" aria-hidden="true"></i>
@@ -16,7 +18,9 @@
             </div>
             <div id="whiteboard" :style="{height: wdata.height, width: wdata.width}" :key="forkey" 
                 v-on:drop="dropElement" v-on:dragover.prevent>
+                <!-- template to Iterate through all stored whiteboard elements-->
                 <template v-for="[key ,element] of wdata.elements" >
+                    <!-- a different template for each type of element-->
                     <template v-if="element.get('type') === 'postit'">
                         <div :key="key" :id="element.get('id')" 
                             :class="element.get('type') + ' ' + element.get('id')"
@@ -43,6 +47,7 @@
                             </div></div>
                             <img :class="'imgbase ' + element.get('id')" :src="element.get('imgdata')"
                             draggable="false" :title="element.get('file')">
+                            <!--upload is always visible with no image and visible on mousover otherwise -->
                             <div v-if="element.get('file') === ''"
                             :class="'imgpreupload'">
                                 <input type="file" :class="element.get('id')">
@@ -57,6 +62,7 @@
                             </div>
                         </div> 
                     </template>
+                    <!-- catch all-->
                     <template v-else>
                         <div :key="key">
                         </div>
@@ -90,14 +96,13 @@ export default ({
     },
     data() {
         return {
-            pos: {top: 0, left: 0, x: 0, y: 0},
-            connected: false,
+            pos: {top: 0, left: 0, x: 0, y: 0}, //stores values when moving elements
+            connected: false, 
             loaded: false,
-            sessionID: "",
-            sock: null,
-            tool: "mouse",
-            cursor: "grab",
-            wdata: {
+            sessionID: "", //the socket ID
+            sock: null, //the socket
+            tool: "mouse", //which tool is in use
+            wdata: { //all whiteboard data
                 name: this.$route.query.id,
                 height: "",
                 width: "",
@@ -120,7 +125,7 @@ export default ({
 
             defaultstickylabel: "Title",
             defaultstickytext: "Text",
-            forkey: 0,
+            forkey: 0, //increment to update whiteboard
             resizeObs: null,
         };
     },
@@ -142,14 +147,17 @@ export default ({
             }
         },
 
+        //--------------------
+        //Socket setup and events
+        //--------------------
         startSocket() {
             console.log(this.wdata.name);
             this.sock = io("http://localhost:10011", {
                 auth: {token: this.$auth.$storage.getUniversal("_token.local")}, 
                 query: {projectID: this.wdata.name}
             });
+
             this.sock.on("loginSuccess", (sessionID, wjson) => {
-                console.log('2');
                 this.sessionID = sessionID;
                 this.connected = true;
                 this.buildWhiteboard(JSON.parse(wjson));
@@ -174,38 +182,45 @@ export default ({
                 this.message = "update failed";
             });
 
+            //adds object to elements map
             this.sock.on('create', (object) => {
                 this.wdata.elements.set(object.id, new Map(Object.entries(object)));
                 this.forkey = this.forkey + 1;
                 this.$forceUpdate();
             });
 
+            //deletes object
             this.sock.on('delete', (elemID) => {
                 this.wdata.elements.delete(elemID);
                 this.forkey = this.forkey + 1;
                 this.$forceUpdate();
             });
 
+            //creates new img element then asks server to send image
             this.sock.on('imgupload', (object) => {
                 this.wdata.elements.set(object.id, new Map(Object.entries(object)));
                 this.sock.emit('imgdownload', object.id, object.file);
             });
 
+            //updates img element file name then asks server to send image
             this.sock.on('imgupdate', (elemID, filenme) => {
                 this.wdata.elements.get(elemID).set('file', filenme);
                 this.sock.emit('imgdownload', elemID, filenme);
             });
 
+            //receives image from server
             ss(this.sock).on('imgdownload', (elemID, stream) => {
                 console.log('starting');
                 this.renderDownloadedImage(elemID, stream);
             })
         },
 
+        //stores whiteboard data into wdata variable for use by template
         buildWhiteboard(wjson) {
             this.wdata.height = wjson.height;
             this.wdata.width = wjson.width;
             for (var elem of wjson.elements) {
+                //changes elements into Map objects for ease of searching
                 var newmap = new Map(Object.entries(elem));
                 this.wdata.elements.set(elem.id, newmap);
                 if (newmap.get('type')==='img') {
@@ -218,8 +233,9 @@ export default ({
             
             
         },
-        /*tool handler*/
+        //changes current tool in use
         useTool(toolname) {
+            //resets cursur on whiteboard elements
             if (this.tool === 'delete' && toolname !== 'delete') {
                 for (var elem of document.getElementById('whiteboard').children) {
                     elem.style.removeProperty('cursor');
@@ -227,7 +243,8 @@ export default ({
             };
 
             this.tool = toolname;
-
+            
+            //sets cursor on whitebaords
             if (toolname === "mouse") {
                 document.getElementById('whiteboardframe').style.cursor = "grab";
             } else if (toolname === "sticky" || toolname === "image") {
@@ -239,6 +256,7 @@ export default ({
                 }
             }
         },
+        //moves classlist to string when .classes property not working as expected
         getClassQuery(element) {
             var classlist = element.classList;
             var classes = "";
@@ -247,6 +265,7 @@ export default ({
             }
             return classes;
         },
+        //finds which class is the whiteboard element id
         splitTarget(target) {
             var targets = target.trim().split(' ');
             var result = [];
@@ -261,6 +280,12 @@ export default ({
             return result;
 
         },
+
+
+        //------------------
+        //send/receive updates
+        //------------------
+        //updates whitebaord data with new text values, sending to and receiving from others
         updateText(target, data) {
             var keys = this.splitTarget(target);
             var map = this.wdata.elements;
@@ -272,12 +297,13 @@ export default ({
 
             map.set(keys.pop(), data);
         },
+
         receiveTextUpdate(target, data) {
             this.updateText(target, data);
             this.$forceUpdate();
             //document.querySelector(target).value = data;
         },
-        
+
         sendTextUpdate(event) {
             var target = this.getClassQuery(event.target);
 
@@ -285,12 +311,16 @@ export default ({
             
             this.sock.emit("update", target, "text", event.target.value);
         },
+
+
+        //Updates whiteboard data with new top and left values, sending to and receiving from others
         updateLocation(target, data) {
             var keys = this.splitTarget(target);
             
             this.wdata.elements.get(keys[0]).set('top', data.top);
             this.wdata.elements.get(keys[0]).set('left', data.left);
         },
+
         receiveMoveUpdate(target, data) {
             this.updateLocation(target, data);
 
@@ -299,6 +329,7 @@ export default ({
             //element.style.top = data.top;
             //element.style.left = data.left;
         },
+
         sendMoveUpdate(element) {
             var target = this.getClassQuery(element);
             var data = {top: element.style.top, left: element.style.left};
@@ -306,9 +337,13 @@ export default ({
             this.updateLocation(target, data);
             this.sock.emit("update", target, "move", data);
         },
+
+
+        //handles events from the mutation observer
         resizeHandler(mutationsList) {
             for (const m of mutationsList) {
                 try {
+                    //limits first to style changes, then to height and width only
                     if (m.type == "attributes" && m.attributeName == "style") {
                         var style = m.target[m.attributeName];
                         var oldheight = this.wdata.elements.get(m.target['id']).get('height');
@@ -322,12 +357,15 @@ export default ({
                 } catch { console.log('resize observer fail')};
             }
         },
+
+        //Updates whiteboard data with resized elements, sending to and receiving from others
         updateSize(target, data) {
             var keys = this.splitTarget(target);
             
             this.wdata.elements.get(keys[0]).set('height', data.height);
             this.wdata.elements.get(keys[0]).set('width', data.width);
         },
+
         receiveResizeUpdate(target, data) {
             this.updateSize(target, data);
 
@@ -336,6 +374,7 @@ export default ({
             //element.style.height = data.height;
             //element.style.width = data.width;
         },
+    
         sendResizeUpdate(element) {
             var target = this.getClassQuery(element);
             var data = {height: element.style.height, width: element.style.width};
@@ -343,6 +382,9 @@ export default ({
             this.updateSize(target, data);
             this.sock.emit("update", target, "resize", data)
         },
+
+
+        //Uploads an images from an image element that the user has just created
         uploadImage(event) {
             var id = event.target.className;
             var file = document.querySelector('input.' + id).files[0];
@@ -359,12 +401,13 @@ export default ({
                 imgdata: "",
             };
             this.renderImage(id, file);
-            //this.sock.emit('create', img);
             var stream = ss.createStream();
             ss(this.sock).emit('imgupload', img, stream)
             ss.createBlobReadStream(file).pipe(stream);
             console.log('sent');
         },
+
+        //uploads an image from an existing image element
         changeImage(event) {
             var id = event.target.className;
             var file = document.querySelector('input.' + id).files[0];
@@ -376,6 +419,8 @@ export default ({
             ss.createBlobReadStream(file).pipe(stream);
             console.log('sent');
         },
+
+        //displays an image that the user has just uploaded
         renderImage(elemID, file) {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -388,6 +433,8 @@ export default ({
             };
             reader.readAsDataURL(file);
         },
+
+        //displays an image that the user has just downloaded
         async renderDownloadedImage(elemID, stream) {
             const chunks = [];
 
@@ -416,6 +463,8 @@ export default ({
             this.forkey = this.forkey + 1;
             this.$forceUpdate();
         },
+
+        //changes whiteboard behaviour based on active tool
         whiteboardMouseDown(event) {
             if (this.tool === "mouse") {
                 this.moveWhiteboard(event);
@@ -425,6 +474,8 @@ export default ({
                 this.newDragBox(event, this.newImg);
             }
         },
+
+        //allows user to move whiteboard byclick-and-dragging the background
         moveWhiteboard(event) {
             //look grabbed, don't highlight text
             var wframe = document.getElementById('whiteboardframe');
@@ -465,6 +516,11 @@ export default ({
 
         },
 
+        //-------------------
+        //creating and Deleting
+        //-------------------
+        //makes a box to show the size of the new element
+        //newelemfunct: the function to call when releasing the mouse, meaning the box is at full size
         newDragBox(event, newelemfunct) {
             var wframe = document.getElementById('whiteboardframe');
             var box = document.createElement('div');
@@ -598,101 +654,15 @@ export default ({
         
         
     },
-    /*render: function(createElement) {
-        var app = this;
-        if (this.connected && this.loaded) {
-            return createElement('div', {attrs: {id: 'wframecontainer'}},[
-                //the interactable part of the whiteboard
-                createElement('div', {attrs: {id: 'whiteboardframe'}, 
-                on: {mousedown: (event) => {this.moveWhiteboard(event)}}},[
-                    //toolbar
-                    createElement('div', {attrs: {id: 'toolbar'}, 
-                    on: {mousedown: (event)=> {event.stopPropagation();}}}, this.tools.map( (tool) => {
-                        return createElement('div', {class: 'toolselector', on: {
-                                click: (event) => {
-                                    event.stopPropagation();
-                                    this.useTool(tool.name)
-                                }
-                            }
-                        },/*implement tool images heretool.name);
-                    })),
-
-                    //the display part of the whiteboard
-                    createElement('div', {
-                        attrs: {id: 'whiteboard'}, 
-                        style: {
-                            height: this.wdata.height, 
-                            width: this.wdata.width,
-                        },
-                        on: {
-                            drop: (event) => {this.dropElement(event)},
-                            dragover: (event) => {event.preventDefault()}
-                        }
-                    },//all whiteboard elements
-                    
-                    Array.from(this.wdata.elements.entries()).map(([key, element]) => {
-                        //postit elements
-                        if (element.get('type') == 'postit') {
-                            return createElement('div', {
-                                attrs: {id: element.get('id'), draggable: true},
-                                class: [element.get('type'), element.get('id')],
-                                on: {
-                                    mousedown: (event) =>{
-                                        event.stopPropagation();
-                                    },
-                                    dragstart: (event) => {this.dragElement(event)}
-                                },
-                                style: {
-                                    height: element.get('height'),
-                                    width: element.get('width'),
-                                    top: element.get('top'),
-                                    left: element.get('left'),
-                                }
-                            },[
-                                createElement('textarea', {
-                                    domProps: {value: element.get('label')},
-                                    class: ['label', element.get('id')],
-                                    on: {
-                                        click: (event) => {event.stopPropagation()},
-                                        input: (event) => {this.sendTextUpdate(event)},
-                                    }
-                                }),
-                                createElement('textarea', {
-                                    domProps: {value: element.get('text')},
-                                    class: ['text', element.get('id')],
-                                    on: {
-                                        input: (event) => {this.sendTextUpdate(event)},
-                                    },
-                                })
-                            ]);
-                        }else {
-                            return "this isn't it";
-                        };//implement other elements here
-                    })),//end whiteboard createElement
-                ])//end whiteboardframe createElement
-            ]);//end whiteboardcontainer createElement
-        } else {
-            return createElement('Loading');
-        }
-        
-    },*/
+    
     created() {
         this.startWhiteboard();
         
         
     },
     beforeUpdated() {
+        //clears mutation observer events before updates, since they will be created again during the update.
         observer.disconnect();
-    },
-    updated() {
-        //try {
-            
-            //var elements = document.getElementById('whiteboard').children;
-            //console.log(elements);
-            //for (var e of elements) {
-               // this.resizeObs.observe(e, {attributeFilter: ['style'], attributeOldValue: true});
-            //};
-        //} finally {};
     }
 })
 </script>
