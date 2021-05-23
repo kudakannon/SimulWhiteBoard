@@ -42,7 +42,7 @@
                                 <i class="fa fa-picture-o fa-4x" aria-hidden="true"></i>
                             </div></div>
                             <img :class="'imgbase ' + element.get('id')" :src="element.get('imgdata')"
-                            draggable="false">
+                            draggable="false" :title="element.get('file')">
                             <div v-if="element.get('file') === ''"
                             :class="'imgpreupload'">
                                 <input type="file" :class="element.get('id')">
@@ -75,6 +75,7 @@
 <script>
 import Loading from "~/components/Loading"
 import { io, Socket } from 'socket.io-client'
+import ss from 'socket.io-stream'
 import { mapGetters } from 'vuex'
 import { observer } from 'vue-mutation-observer'
 
@@ -114,7 +115,7 @@ export default ({
                 {name:"thumbup", icon: "fa-thumbs-up"},
                 {name:"thumbdown", icon: "fa-thumbs-down"},
                 {name:"save", icon: "fa-save"},
-                {name:"resize", icon: "fa-arrows-alt"}
+                //{name:"resize", icon: "fa-arrows-alt"}
             ],
 
             defaultstickylabel: "Title",
@@ -127,6 +128,7 @@ export default ({
         Loading,
         io,
         Socket,
+        ss,
     },
     methods: {
         async startWhiteboard() {
@@ -182,6 +184,21 @@ export default ({
                 this.wdata.elements.delete(elemID);
                 this.forkey = this.forkey + 1;
                 this.$forceUpdate();
+            });
+
+            this.sock.on('imgupload', (object) => {
+                this.wdata.elements.set(object.id, new Map(Object.entries(object)));
+                this.sock.emit('imgdownload', object.id, object.file);
+            });
+
+            this.sock.on('imgupdate', (elemID, filenme) => {
+                this.wdata.elements.get(elemID).set('file', filenme);
+                this.sock.emit('imgdownload', elemID, filenme);
+            });
+
+            ss(this.sock).on('imgdownload', (elemID, stream) => {
+                console.log('starting');
+                this.renderDownloadedImage(elemID, stream);
             })
         },
 
@@ -191,6 +208,9 @@ export default ({
             for (var elem of wjson.elements) {
                 var newmap = new Map(Object.entries(elem));
                 this.wdata.elements.set(elem.id, newmap);
+                if (newmap.get('type')==='img') {
+                    this.sock.emit('imgdownload', newmap.get('id'), newmap.get('file'));
+                }
             }
 
             this.loaded = true;
@@ -339,7 +359,11 @@ export default ({
                 imgdata: "",
             };
             this.renderImage(id, file);
-            this.sock.emit('imgupload', img, file);
+            //this.sock.emit('create', img);
+            var stream = ss.createStream();
+            ss(this.sock).emit('imgupload', img, stream)
+            ss.createBlobReadStream(file).pipe(stream);
+            console.log('sent');
         },
         changeImage(event) {
             var id = event.target.className;
@@ -347,7 +371,10 @@ export default ({
 
             this.wdata.elements.get(id).set('file', file.name);
             this.renderImage(id, file);
-            this.sock.emit('imgupdate', id, file);
+            var stream = ss.createStream();
+            ss(this.sock).emit('imgupdate', id, file.name, stream)
+            ss.createBlobReadStream(file).pipe(stream);
+            console.log('sent');
         },
         renderImage(elemID, file) {
             const reader = new FileReader();
@@ -360,6 +387,34 @@ export default ({
                 console.log(e);
             };
             reader.readAsDataURL(file);
+        },
+        async renderDownloadedImage(elemID, stream) {
+            const chunks = [];
+
+            var prom = new Promise((resolve, reject) => {
+                stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+                stream.on('error', (err) => reject(err));
+                stream.on('end', () => {
+                    resolve(Buffer.concat(chunks).toString('base64'));
+                })
+            })
+
+            var image = await prom;
+
+            var suffixes = this.wdata.elements.get(elemID).get('file').split('.');
+            var suff = suffixes[suffixes.length - 1];
+            var datauri;
+            if ( suff === 'jpg' || suff === 'jpeg') {
+                datauri = "data:image/jpeg;base64,"
+            } else if ( suff === 'png') {
+                datauri = "data:image/png;base64,"
+            } else if (suff === 'gif') {
+                datauri = "data:image/gif;base64,"
+            }
+
+            this.wdata.elements.get(elemID).set('imgdata', datauri + image);
+            this.forkey = this.forkey + 1;
+            this.$forceUpdate();
         },
         whiteboardMouseDown(event) {
             if (this.tool === "mouse") {

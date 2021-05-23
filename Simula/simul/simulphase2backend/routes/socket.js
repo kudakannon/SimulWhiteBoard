@@ -1,7 +1,9 @@
 const router = require("./login");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const fs = require('fs');
 const fsp = require("fs/promises");
+const ss = require("socket.io-stream");
 
 const options = require('../knexfile.js');
 const knex = require('knex')(options);
@@ -185,12 +187,18 @@ class Whiteboard {
         return true;
     };
 
-    saveImage(file) {
-
+    async saveImage(filenme, stream) {
+        stream.pipe(fs.createWriteStream("./whiteboards/" + this.boardname + "/" + filenme));
+        console.log('saved');
     };
 
-    loadImage(filenme) {
+    changeImage (elemID, filenme, stream) {
+        this.data.elements[this.elemmap.get(elemID)].file = filenme;
+        stream.pipe(fs.createWriteStream("./whiteboards/" + this.boardname + "/" + filenme));
+    }
 
+    async loadImage(filenme, stream) {
+        fs.createReadStream("./whiteboards/" + this.boardname + "/" + filenme).pipe(stream);
     };
 
 
@@ -309,15 +317,47 @@ module.exports = function (io) {
                 }
             });
 
-            socket.on('imgupload', (object, file) => {
+            ss(socket).on('imgupload', (imgobj, stream) => {
+                try {
+                    var projectID = socket.handshake.query.projectID;
 
+                    if (!(whiteboards.has(projectID))) {
+                        var w = createWhiteboard(projectID);
+                    }
+                    whiteboards.get(projectID).saveImage(imgobj.file, stream);
+                    whiteboards.get(projectID).addElement(imgobj);
+                    socket.to(projectID).emit('imgupload', imgobj);
+                } catch {
+                    console.log('failure to upload');
+                }
+                
             });
 
-            socket.on('imgupdate', (elemID, file) => {
+            ss(socket).on('imgupdate', (elemID, filenme, stream) => {
+                try {
+                    var projectID = socket.handshake.query.projectID;
 
+                    if (!(whiteboards.has(projectID))) {
+                        var w = createWhiteboard(projectID);
+                    }
+                    whiteboards.get(projectID).changeImage(elemID, filenme, stream);
+                    socket.to(projectID).emit('imgupdate', elemID, filenme);
+                } catch {
+                    console.log('failure to upload');
+                }
+                
             });
 
-            socket.on('imgdownload', (filenme) => {
+            socket.on('imgdownload', (elemID, filenme) => {
+                var projectID = socket.handshake.query.projectID;
+
+                    if (!(whiteboards.has(projectID))) {
+                        var w = createWhiteboard(projectID);
+                    }
+
+                stream = ss.createStream();
+                ss(socket).emit('imgdownload', elemID, stream);
+                whiteboards.get(projectID).loadImage(filenme, stream);
 
             });
             socket.emit("loginSuccess", socket.id, whiteboards.get(projectID).json);
