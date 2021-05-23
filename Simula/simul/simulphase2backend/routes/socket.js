@@ -9,7 +9,7 @@ const options = require('../knexfile.js');
 const knex = require('knex')(options);
 
 const whiteboards = new Map();
-const defaultboard = '{"height": "1080px", "width": "1800px", "elements": []}';
+const defaultboard = '{"height": "2160px", "width": "4096px", "elements": []}';
 
 class Whiteboard {
     constructor(boardname, boardjson) {
@@ -193,6 +193,7 @@ class Whiteboard {
     };
 
     changeImage (elemID, filenme, stream) {
+        this.changedFlag();
         this.data.elements[this.elemmap.get(elemID)].file = filenme;
         stream.pipe(fs.createWriteStream("./whiteboards/" + this.boardname + "/" + filenme));
     }
