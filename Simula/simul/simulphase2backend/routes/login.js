@@ -43,38 +43,40 @@ router.post("/login", function (req, res, next) {
         res.json({ Error: true, Message: "Error in MySQL query" });
       });
   } 
-  else if(req.body.userType == "readAccess") {
-    req.db
-      .from("projectAccess")
-      .where({ projectID: req.body.projectID })
-      .andWhere({ sharedEmail: req.body.email })
-      .then((rows) => {
-        if(rows.length == 0) {
-          return res.status(400).send({message: "Error. This email hasn't been given permission to access this project"})
-        }
-        else {
-          const userId = rows[0].sharedEmail+req.body.projectID;
-          const accessToken = jwt.sign(
-            {
-              user: req.body.email,
-              token: userId,
-              userType: "readAccess",
-            },
-            "helloKey",
-            { expiresIn: "24h" }
-          );
-          const resp = {
-            status: "success",
-            token: accessToken,
-          };
-          return res.status(200).send(resp);
-        }
-      })
-      .catch(err => {
-        return res.status(400).send(err)
-      })
-  }
+  // else if(req.body.userType == "readAccess") {
+  //   console.log(updatedPW);
+  //   req.db
+  //     .from("projectAccess")
+  //     .where({ projectID: req.body.projectID })
+  //     .andWhere({ sharedEmail: req.body.email })
+  //     .then((rows) => {
+  //       if(rows.length == 0) {
+  //         return res.status(400).send({message: "Error. This email hasn't been given permission to access this project"})
+  //       }
+  //       else {
+  //         const userId = rows[0].sharedEmail+req.body.projectID;
+  //         const accessToken = jwt.sign(
+  //           {
+  //             user: req.body.email,
+  //             token: userId,
+  //             userType: "readAccess",
+  //           },
+  //           "helloKey",
+  //           { expiresIn: "24h" }
+  //         );
+  //         const resp = {
+  //           status: "success",
+  //           token: accessToken,
+  //         };
+  //         return res.status(200).send(resp);
+  //       }
+  //     })
+  //     .catch(err => {
+  //       return res.status(400).send(err)
+  //     })
+  // }
   else {
+    console.log(updatedPW);
     req.db
       .from("users")
       .where({ userEmail: req.body.email })

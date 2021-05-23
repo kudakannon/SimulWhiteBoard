@@ -56,7 +56,9 @@ class Whiteboard {
         return JSON.stringify(this.data);
     }
 
+
     //let object know to save changes
+
     changedFlag() {
         //signal whiteboard has been updated
         this.recentchange = true;
@@ -320,7 +322,9 @@ module.exports = function (io) {
                 }
             });
 
+
             //deletes a whiteboard element and updates others using whiteboard
+
             socket.on('delete', (elemID) => {
                 try {
                     var projectID = socket.handshake.query.projectID;
@@ -334,6 +338,7 @@ module.exports = function (io) {
                 } catch {
                     console.log('failure to delete');
                 }
+
             });
 
             //uses socket.io-stream to receive new image and image element

@@ -1,6 +1,7 @@
 
 <template>
 <span>
+
     <div v-if="(connected && loaded)" id="wframecontainer"> 
         <div id="whiteboardframe" v-on:mousedown="whiteboardMouseDown">
             <div id="toolbar" v-on:mousedown.stop>
@@ -181,7 +182,6 @@ export default ({
             this.sock.on("updateFail", () => {
                 this.message = "update failed";
             });
-
             //adds object to elements map
             this.sock.on('create', (object) => {
                 this.wdata.elements.set(object.id, new Map(Object.entries(object)));
@@ -543,6 +543,7 @@ export default ({
         },
 
         dragDragBox(event) {
+
             var box = document.getElementById('dragbox');
             box.style.width = (event.clientX - this.pos.left) + 'px';
             box.style.height = (event.clientY - this.pos.top) + 'px';
