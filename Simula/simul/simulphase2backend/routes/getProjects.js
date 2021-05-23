@@ -20,10 +20,12 @@ router.get("/projects", function (req, res, next) {
     .from("project")
     .join("directors", "project.userID", "=", "directors.directorID")
     .select(
+      'projectID',
       req.db.raw(
         `DATE_FORMAT(projectDateCreated,'%d/%m/%Y %h:%i:%s %p') AS projectDateCreated`
       ),
       'directors.directorName AS createdBy',
+
       "projectAddress",
       "companyName",
       "projectStatus",

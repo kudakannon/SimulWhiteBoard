@@ -104,7 +104,7 @@ export default ({
             sock: null, //the socket
             tool: "mouse", //which tool is in use
             wdata: { //all whiteboard data
-                name: this.$route.query.id,
+                name: this.$route.query.project,
                 height: "",
                 width: "",
                 elements: new Map(),

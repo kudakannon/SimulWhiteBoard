@@ -261,7 +261,7 @@ export default {
     },
 
     async updateRole(){
-      const updateRoles = await this.$axios.get("getroles", {projectID: 1});
+      const updateRoles = await this.$axios.get("getroles", {projectID: this.$route.query.project});
         if(!updateRoles.error){
           for(var i  = 0; i < this.roles.length;i++){
             for(var j = 0; j< this.roles.length; j++){
@@ -273,21 +273,21 @@ export default {
           for(var i = 0; i< this.roles.length;i++){
             if(this.roles[i].name == null && updateRoles.data[i] != undefined){
               this.$axios.delete("removeRoles", {
-                projectID: 46,
+                projectID: this.$route.query.project,
                 oldName: updateRoles.data[i].userRole,
                 oldWeight: updateRoles.data[i].roleWeight
               })
             }
             else if(this.roles[i].name != null && updateRoles.data[i] == undefined){
               this.$axios.post("addRoles", {
-                projectID: 1,
+                projectID: this.$route.query.project,
                   roleName: this.roles[i].name,
                   roleWeight: this.roles[i].weight
                 });
             }
               else if(this.roles[i].name != null && updateRoles.data[i] != undefined && this.roles[i].name != updateRoles.data[i].userRole){
                 this.$axios.post("updateroles", {
-                  projectID: 1,
+                  projectID: this.$route.query.project,
                     oldName: updateRoles.data[i].userRole, 
                     newName: this.roles[i].name, 
                     oldWeight: updateRoles.data[i].roleWeight, 
@@ -318,7 +318,7 @@ export default {
           for(var i = 0; i< this.colabs.length;i++){
             if(this.colabs[i].email == null && updateColabs.data[i] != undefined){
               this.$axios.delete("removeColabs", {
-                projectID: 1,
+                projectID: this.$route.query.project,
                 oldEmail: updateColabs.data[i].userEmail,
                 oldRole: updateColabs.data[i].userRole
               })
@@ -329,7 +329,7 @@ export default {
               var idxusername = username.indexOf("@");
               
               this.$axios.post("addcolabs", {
-                projectID: 1,
+                projectID: this.$route.query.project,
                 userName: username.slice(0, idxusername),
                   userEmail: this.colabs[i].email,
                   userRole: this.roles[0].name
@@ -355,46 +355,6 @@ export default {
             
   
     },    
-    // async updateStages(){
-    //   const updateRoles = await this.$axios.get("getroles", {projectID: 0});
-    //     if(!updateRoles.error){
-    //       for(var i  = 0; i < this.roles.length;i++){
-    //         for(var j = 0; j< this.roles.length; j++){
-    //           if(this.roles[i].name==this.roles[j].name && i != j){
-    //             this.roles[j].name=null;
-    //           }
-    //         }ht
-    //       }
-    //       for(var i = 0; i< this.roles.length;i++){
-    //         if(this.roles[i].name == null && updateRoles.data[i] != undefined){
-    //           this.$axios.delete("removeRoles", {
-    //             projectID: 46,
-    //             oldName: updateRoles.data[i].userRole,
-    //             oldWeight: updateRoles.data[i].roleWeight
-    //           })
-    //         }
-    //         else if(this.roles[i].name != null && updateRoles.data[i] == undefined){
-    //           this.$axios.post("addRoles", {
-    //             projectID: 46,
-    //               roleName: this.roles[i].name,
-    //               roleWeight: this.roles[i].weight
-    //             });
-    //         }
-    //         else if(this.roles[i].name != null && updateRoles.data[i] != undefined && this.roles[i].name != updateRoles.data[i].userRole){
-    //           this.$axios.post("updateroles", {
-    //              projectID: 46,
-    //               oldName: updateRoles.data[i].userRole, 
-    //               newName: this.roles[i].name, 
-    //               oldWeight: updateRoles.data[i].roleWeight, 
-    //               newWeight: this.roles[i].weight
-    //           })
-    //           .catch(err => {
-    //             this.error = err.response.data.message;
-    //           });
-    //         }          
-    //       }        
-    //     }
-    // },
    
   },
   async created(){
@@ -411,7 +371,7 @@ export default {
       }
       
     }
-    const resUser = await this.$axios.get("getcolabs", {projectID: 1});
+    const resUser = await this.$axios.get("getcolabs", {projectID: this.projectID});
    
       if(!resUser.error){
           if(resUser.data.length>0){
