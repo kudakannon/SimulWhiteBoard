@@ -2,21 +2,21 @@
 <template>
 <span>
     <div v-if="(connected && loaded)" id="wframecontainer">
-        <div id="whiteboardframe" v-on:mousedown="moveWhiteboard">
+        <div id="whiteboardframe" v-on:mousedown="whiteboardMouseDown">
             <div id="toolbar" v-on:mousedown.stop>
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
                 <div v-for="{name, icon} in tools" :key="name" class="toolselector" v-on:click.stop="useTool(name)">
                     <i class="fa" :class="icon" aria-hidden="true" ></i>
                 </div>
             </div>
-            <div id="whiteboard" :style="{height: wdata.height, width: wdata.width}" 
+            <div id="whiteboard" :style="{height: wdata.height, width: wdata.width}" :key="forkey" 
                 v-on:drop="dropElement" v-on:dragover.prevent>
-                <template v-for="[key ,element] of wdata.elements">
+                <template v-for="[key ,element] of wdata.elements" >
                     <template v-if="element.get('type')=='postit'">
                         <div :key="key" :id="element.get('id')" 
                             :class="element.get('type') + ' ' + element.get('id')"
                             v-on:mousedown.stop v-on:dragstart="dragElement" draggable 
-                            v-observer:subtree.attributes="resizeHandler"
+                            v-observer:subtree.attributes="resizeHandler" v-on:click="deleteElement"
                             :style="{height: element.get('height'), width: element.get('width'), 
                             top: element.get('top'), left: element.get('left')}">
 
@@ -74,16 +74,21 @@ export default ({
             //all tools in toolbar: {name: "", imgurl: ""}
             tools: [
                 {name:"mouse", icon: "fa-mouse-pointer"}, 
-                {name:"edit", icon: "fa-edit"}, 
+                //{name:"edit", icon: "fa-edit"}, 
                 {name:"font", icon: "fa-font"},
                 {name:"sticky", icon: "fa-sticky-note"},
                 {name:"image", icon: "fa-image"},
-                {name:"comment", icon: "fa-comment"},
-                {name:"save", icon: "fa-save"},
+                //{name:"comment", icon: "fa-comment"},
+                {name:"delete", icon: "fa-trash"},
                 {name:"thumbup", icon: "fa-thumbs-up"},
-                {name:"thumbdown", icon: "fa-thumbs-down"}
+                {name:"thumbdown", icon: "fa-thumbs-down"},
+                {name:"save", icon: "fa-save"},
+                {name:"resize", icon: "fa-arrows-alt"}
             ],
 
+            defaultstickylabel: "Title",
+            defaultstickytext: "Text",
+            forkey: 0,
             resizeObs: null,
         };
     },
@@ -135,6 +140,18 @@ export default ({
             this.sock.on("updateFail", () => {
                 this.message = "update failed";
             });
+
+            this.sock.on('create', (object) => {
+                this.wdata.elements.set(object.id, new Map(Object.entries(object)));
+                this.forkey = this.forkey + 1;
+                this.$forceUpdate();
+            });
+
+            this.sock.on('delete', (elemID) => {
+                this.wdata.elements.delete(elemID);
+                this.forkey = this.forkey + 1;
+                this.$forceUpdate();
+            })
         },
 
         buildWhiteboard(wjson) {
@@ -152,12 +169,23 @@ export default ({
         },
         /*tool handler*/
         useTool(toolname) {
+            if (this.tool === 'delete' && toolname !== 'delete') {
+                for (var elem of document.getElementById('whiteboard').children) {
+                    elem.style.removeProperty('cursor');
+                };
+            };
+
             this.tool = toolname;
 
             if (toolname === "mouse") {
                 document.getElementById('whiteboardframe').style.cursor = "grab";
-            } else {
+            } else if (toolname === "sticky" || toolname === "image") {
                 document.getElementById('whiteboardframe').style.cursor = "crosshair";
+            } else if (toolname === "delete") {
+                document.getElementById('whiteboardframe').style.cursor = "default";
+                for (var elem of document.getElementById('whiteboard').children) {
+                    elem.style.cursor = "crosshair";
+                }
             }
         },
         getClassQuery(element) {
@@ -265,10 +293,10 @@ export default ({
             this.sock.emit("update", target, "resize", data)
         },
         whiteboardMouseDown(event) {
-            if (tool === "mouse") {
+            if (this.tool === "mouse") {
                 this.moveWhiteboard(event);
-            } else if (tool === "sticky") {
-                
+            } else if (this.tool === "sticky") {
+                this.newStickynote(event);
             }
         },
         moveWhiteboard(event) {
@@ -313,14 +341,60 @@ export default ({
 
         newStickynote(event) {
             var wframe = document.getElementById('whiteboardframe');
-            var box = document.createElement(svg);
-            box.style.top = event.clientY;
-            box.style.left = event.clientX;
-            box.style.width = 0;
-            box.style.height = 0;
+            var box = document.createElement('div');
+            box.id = 'dragbox';
+            var headerheight = document.querySelector(".navbar-dark").offsetHeight;
+            box.style.top = (event.clientY + wframe.scrollTop - headerheight) + 'px';
+            box.style.left = (event.clientX + wframe.scrollLeft) + 'px';
+            box.style.width = '0px';
+            box.style.height = '0px';
 
-            document.addEventListener('mousemove', this.dragWhiteboard);
-            document.addEventListener('mouseup', this.releaseWhiteboard);
+
+            document.getElementById('whiteboard').appendChild(box);
+
+
+            this.pos.top = event.clientY;
+            this.pos.left = event.clientX;
+
+            document.addEventListener('mousemove', this.dragSticky);
+            document.addEventListener('mouseup', this.releaseSticky);
+        },
+
+        dragSticky(event) {
+            var box = document.getElementById('dragbox');
+            box.style.width = (event.clientX - this.pos.left) + 'px';
+            box.style.height = (event.clientY - this.pos.top) + 'px';
+        },
+
+        releaseSticky(event) {
+            var box = document.getElementById('dragbox');
+            box.style.width = (event.clientX - this.pos.left) + 'px';
+            box.style.height = (event.clientY - this.pos.top) + 'px';
+
+            var id = this.sessionID + box.style.top + 'z' + Math.random();
+            var sticky = {
+                type: "postit",
+                id: id,
+                left: box.style.left,
+                top: box.style.top,
+                height: box.style.height,
+                width: box.style.width,
+                label: this.defaultstickylabel,
+                text: this.defaultstickytext,
+            };
+
+            this.wdata.elements.set(id, new Map(Object.entries(sticky)));
+            console.log(this.wdata.elements);
+            this.forkey = this.forkey + 1;
+            this.$forceUpdate;
+            this.sock.emit('create', sticky);
+
+
+            box.remove();
+            this.useTool('mouse');
+            document.removeEventListener('mousemove', this.dragSticky);
+            document.removeEventListener('mouseup', this.releaseSticky);
+
         },
     
         dragElement(event) {
@@ -347,6 +421,23 @@ export default ({
 
             this.sendMoveUpdate(dropelem);
         },
+
+        deleteElement(event) {
+
+            //if delete tool isn't selected, do nothing
+            if (this.tool !== "delete") {
+                return;
+            };
+
+            this.wdata.elements.delete(event.target.id);
+            this.useTool('mouse');
+            this.sock.emit('delete', event.target.id);
+
+            this.forkey = this.forkey + 1;
+            this.$forceUpdate();
+
+
+        }
         
         
         
@@ -556,15 +647,10 @@ export default ({
 
     #dragbox {
         display: block;
-    }
-
-    #dragbox.rect {
-        height: 100%;
-        width: 100%;
-        stroke: black;
-        stroke-dasharray: 10;
+        position: absolute;
         fill-opacity: 0.2;
         fill: lightyellow;
+        border: 1px dotted black;
     }
 
 

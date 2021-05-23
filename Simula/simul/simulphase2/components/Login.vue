@@ -46,10 +46,10 @@
         <p>
           <nuxt-link to="/directorforgotpass">Forgot your password?</nuxt-link>
         </p>
-        <!-- <p>
+        <p>
           Don't have a Director Account?
           <nuxt-link to="/directorregister">Register</nuxt-link>
-        </p> -->
+        </p>
       </div>
     </div>
   </div>

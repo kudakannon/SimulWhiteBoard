@@ -7,13 +7,13 @@ var password;
 router.post('/addcolabs', function(req, res, next) {
     //TOKEN VERIFICATION
     // var decoded;
-  // try {
-  //   var tok = req.headers.authorization.slice(7);
-  //   decoded = jwt.verify(tok, 'helloKey');
-  // }
-  // catch(err) {
-  //   return res.status(400).send({"message": JSON.stringify(err)});
-  // }
+  try {
+    var tok = req.headers.authorization.slice(7);
+    decoded = jwt.verify(tok, 'helloKey');
+  }
+  catch(err) {
+    return res.status(400).send({"message": JSON.stringify(err)});
+  }
   password = Math.random().toString(36).slice(-8);
   var updatedPW = crypto
           .createHash("sha256")
