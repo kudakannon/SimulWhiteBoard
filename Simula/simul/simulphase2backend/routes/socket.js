@@ -1,13 +1,15 @@
 const router = require("./login");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const fs = require('fs');
 const fsp = require("fs/promises");
+const ss = require("socket.io-stream");
 
 const options = require('../knexfile.js');
 const knex = require('knex')(options);
 
 const whiteboards = new Map();
-const defaultboard = '{"height": "1080px", "width": "1800px", "elements": []}';
+const defaultboard = '{"height": "2160px", "width": "4096px", "elements": []}';
 
 class Whiteboard {
     constructor(boardname, boardjson) {
@@ -15,6 +17,9 @@ class Whiteboard {
         //loading whiteboard json
         this.boardname = boardname;
         this.data = JSON.parse(boardjson);
+
+        //map to store loaded images
+        this.imgmap = new Map();
         
         
 
@@ -46,9 +51,13 @@ class Whiteboard {
         return this.data.elements;
     };
 
+    //used to send whitebboards to user when they first load
     get json() {
         return JSON.stringify(this.data);
     }
+
+
+    //let object know to save changes
 
     changedFlag() {
         //signal whiteboard has been updated
@@ -88,7 +97,7 @@ class Whiteboard {
 
     }
 
-
+    //used pureply for post-its, for now
     updateText(target, text) {
         this.changedFlag();
 
@@ -125,6 +134,8 @@ class Whiteboard {
 
     };
 
+    //handles resizes
+    //returns true if successful, otherwise false
     updateSize(target, dimens) {
         this.changedFlag();
 
@@ -154,6 +165,10 @@ class Whiteboard {
 
     };
 
+    //handles locations
+    //target is the classes of the element that was moved
+    //coords is an object with top and left values
+    //returns true if successful, otherwise false
     updateLocation(target, coords) {
         this.changedFlag();
 
@@ -182,9 +197,28 @@ class Whiteboard {
         return true;
     };
 
+    //saves an image without editing the whiteboard data, paired with adding an image element
+    async saveImage(filenme, stream) {
+        stream.pipe(fs.createWriteStream("./whiteboards/" + this.boardname + "/" + filenme));
+        console.log('saved');
+    };
+
+    //changes an image for an element and updates data
+    changeImage (elemID, filenme, stream) {
+        this.changedFlag();
+        this.data.elements[this.elemmap.get(elemID)].file = filenme;
+        stream.pipe(fs.createWriteStream("./whiteboards/" + this.boardname + "/" + filenme));
+    }
+
+    //pipes a stream to be passed to the user
+    async loadImage(filenme, stream) {
+        fs.createReadStream("./whiteboards/" + this.boardname + "/" + filenme).pipe(stream);
+    };
+
 
 };
 
+//checks if user has access to the whiteboard they are trying to access
 async function checkAccess(projectID, userID, userType, userRole) {//userRole is not implemented at ttime of writing
     var permitted = false;
     //if the use is a director, check if they are the director of the project
@@ -205,6 +239,7 @@ async function checkAccess(projectID, userID, userType, userRole) {//userRole is
     return permitted;
 };
 
+//creates a new whiteboard object
 async function createWhiteboard(name) {
     var boardjson;
     
@@ -238,8 +273,11 @@ module.exports = function (io) {
             if (!(whiteboards.has(projectID))) {
                 var w = createWhiteboard(projectID);
             }
-            socket.join(projectID);
-
+            socket.join(projectID); //joining a room allows packets to be broadcast to these connections
+            //------------------------------
+            //Socket Events
+            //------------------------------
+            //updates a part of a whiteboard element
             socket.on("update", (target, type, data) => {
                 try {
                     var projectID = socket.handshake.query.projectID;
@@ -268,6 +306,7 @@ module.exports = function (io) {
                 };
             });
 
+            //creates a new whitboard element and sends to all others
             socket.on('create', (object)=> {
                 try {
                     var projectID = socket.handshake.query.projectID;
@@ -283,6 +322,9 @@ module.exports = function (io) {
                 }
             });
 
+
+            //deletes a whiteboard element and updates others using whiteboard
+
             socket.on('delete', (elemID) => {
                 try {
                     var projectID = socket.handshake.query.projectID;
@@ -296,7 +338,55 @@ module.exports = function (io) {
                 } catch {
                     console.log('failure to delete');
                 }
-            })
+
+            });
+
+            //uses socket.io-stream to receive new image and image element
+            ss(socket).on('imgupload', (imgobj, stream) => {
+                try {
+                    var projectID = socket.handshake.query.projectID;
+
+                    if (!(whiteboards.has(projectID))) {
+                        var w = createWhiteboard(projectID);
+                    }
+                    whiteboards.get(projectID).saveImage(imgobj.file, stream);
+                    whiteboards.get(projectID).addElement(imgobj);
+                    socket.to(projectID).emit('imgupload', imgobj);
+                } catch {
+                    console.log('failure to upload');
+                }
+                
+            });
+
+            //receives update to img element
+            ss(socket).on('imgupdate', (elemID, filenme, stream) => {
+                try {
+                    var projectID = socket.handshake.query.projectID;
+
+                    if (!(whiteboards.has(projectID))) {
+                        var w = createWhiteboard(projectID);
+                    }
+                    whiteboards.get(projectID).changeImage(elemID, filenme, stream);
+                    socket.to(projectID).emit('imgupdate', elemID, filenme);
+                } catch {
+                    console.log('failure to upload');
+                }
+                
+            });
+
+            //receives requests to download an image over the socket, then sends a stream to the requester
+            socket.on('imgdownload', (elemID, filenme) => {
+                var projectID = socket.handshake.query.projectID;
+
+                    if (!(whiteboards.has(projectID))) {
+                        var w = createWhiteboard(projectID);
+                    }
+
+                stream = ss.createStream();
+                ss(socket).emit('imgdownload', elemID, stream);
+                whiteboards.get(projectID).loadImage(filenme, stream);
+
+            });
             socket.emit("loginSuccess", socket.id, whiteboards.get(projectID).json);
 
         } catch {
