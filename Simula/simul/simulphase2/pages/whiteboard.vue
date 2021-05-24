@@ -554,7 +554,7 @@ export default ({
             box.style.width = (event.clientX - this.pos.left) + 'px';
             box.style.height = (event.clientY - this.pos.top) + 'px';
 
-            var id = this.sessionID + box.style.top + 'z' + Math.random();
+            var id = this.sessionID + box.style.top + 'z' + (Math.random().toString().split('.')[1]);
             var sticky = {
                 type: "postit",
                 id: id,
@@ -585,7 +585,7 @@ export default ({
             box.style.width = (event.clientX - this.pos.left) + 'px';
             box.style.height = (event.clientY - this.pos.top) + 'px';
 
-            var id = this.sessionID + box.style.left + 'p' + Math.random();
+            var id = this.sessionID + box.style.left + 'p' + (Math.random().toString().split('.')[1]);
             var img = {
                 type: "img",
                 id: id,

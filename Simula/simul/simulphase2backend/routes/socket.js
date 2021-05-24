@@ -248,7 +248,7 @@ async function createWhiteboard(name) {
     } catch {
         //save defaultboard to file under boardname directory
         await fsp.mkdir("./whiteboards/" + name);
-        await fsp.writeFile("./whiteboards/" + name + "board.json", defaultboard);
+        await fsp.writeFile("./whiteboards/" + name + "/board.json", defaultboard);
         boardjson = defaultboard;
     }
 
